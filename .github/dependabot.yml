@@ -1,17 +1,6 @@
 version: 2
 updates:
-  - package-ecosystem: npm
-    directory: /web
-    schedule:
-      interval: monthly
-    groups:
-      npm-minor-patch:
-        patterns: ["*"]
-        update-types: [minor, patch]
-      npm-major:
-        patterns: ["*"]
-        update-types: [major]
-
+  # Serveur .NET — versions centralisées dans server/Directory.Packages.props
   - package-ecosystem: nuget
     directory: /server
     schedule:
@@ -24,8 +13,9 @@ updates:
         patterns: ["*"]
         update-types: [major]
 
+  # Image de base du serveur
   - package-ecosystem: docker
-    directory: /infra
+    directory: /server/src/Api
     schedule:
       interval: monthly
     groups:
@@ -47,3 +37,7 @@ updates:
       actions-major:
         patterns: ["*"]
         update-types: [major]
+
+# Pas d'écosystème npm : le site de web/ est en HTML/CSS statique, sans build ni
+# dépendances (voir web/.claude/CLAUDE.md). Si un package.json apparaît un jour,
+# c'est que la décision a changé — et elle passe par un ADR.

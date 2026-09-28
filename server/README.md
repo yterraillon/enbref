@@ -1,95 +1,85 @@
-# EnBref — serveur
+# server
 
-API .NET 10 qui produit et publie le récap quotidien : collecte des titres dans les flux RSS,
-génération via LLM, publication sur le dépôt CDN GitHub.
+API .NET 10 d'EnBref : collecte des titres, génération du récap, publication sur le CDN GitHub, et
+back-office d'administration.
 
-Le code est **repris tel quel** du module `Modules/EnBref` du monolithe
-[myfanwy](https://github.com/yterraillon/myfanwy), sans historique git. Le refactoring
-(BuildingBlocks, alignement sur `docs/ubiquitous-language.md`, passage à l'API Claude) est un
-chantier distinct — voir « Dette assumée » plus bas.
+> ⚠️ **Ce code vient d'être importé de `myfanwy` en conservant sa structure d'origine.** Il ne
+> respecte pas les règles du projet — voir « Écarts » plus bas. Ne pas s'en inspirer pour du code
+> neuf : les conventions cibles sont dans [`.claude/CLAUDE.md`](.claude/CLAUDE.md).
 
-## Structure
-
-```
-server/
-├── Directory.Build.props      suppression d'audit NuGet (AutoMapper 14, dernière version MIT)
-├── Directory.Packages.props   versions NuGet centralisées
-├── global.json                pin du SDK .NET 10
-├── enbref.server.slnx
-└── src/
-    ├── Api/                   host ASP.NET — Program.cs, contrôleurs, Dockerfile
-    ├── BuildingBlocks/
-    │   ├── Application/       abstractions : IRepository, INotificationService, IAiAgent, IObjectStorage*
-    │   └── Infrastructure/    LiteDB, ntfy, helpers HttpClient et sérialisation
-    └── Modules/EnBref/
-        ├── EnBref.Application/     modèles et features (CQRS via MediatR)
-        └── EnBref.Infrastructure/  agents OpenAI, CDN GitHub, RSS, job Quartz, LiteDB
-```
-
-Deux dossiers apparaissent à l'exécution locale, tous deux ignorés par git : `src/Database/` (base
-LiteDB) et `src/Data/En-Bref/` (créé à la demande par `LocalStorageService`, qui ne sert que le
-chemin Azure Blob aujourd'hui désactivé).
-
-L'app Blazor d'administration (« back-office ») n'existe pas encore : elle viendra comme projet
-`src/BackOffice`, à côté de `src/Api`.
-
-## Commandes
+## Lancer
 
 ```bash
-dotnet restore enbref.server.slnx
-dotnet build enbref.server.slnx
-dotnet run --project src/Api        # http://localhost:5240/swagger
+dotnet build server/enbref.server.slnx
+dotnet run --project server/src/Api
 ```
 
-Stack Docker locale (depuis la racine du monorepo) :
+Ou via la stack Docker locale, qui reproduit la production :
 
 ```bash
-cp infra/.env.local.example infra/.env.local   # puis renseigner les secrets
+cp infra/.env.local.example infra/.env.local
 docker compose -f infra/compose.local.yml up -d --build --wait
 ```
 
-## Endpoints
+<http://localhost:8080/swagger> · sonde sur `/health`
 
-| Méthode | Route | Description |
-|---|---|---|
-| `GET` | `/api/enbref/en-bref` | Déclenche une génération **et sa publication** sur le CDN |
-| `GET` | `/health` | Sonde du healthcheck Docker |
-| `GET` | `/swagger` | Documentation OpenAPI |
+En développement les secrets sont lus dans le **Secret Manager** ; en `Production` — y compris dans
+la stack locale — dans les **variables d'environnement**. Le basculement se fait dans
+`Api/App/DependencyInjection.cs`.
 
-⚠️ `GET /api/enbref/en-bref` n'est pas une lecture : il génère un récap et **écrase
-`latest-recap.json` en production** si `GithubToken` est renseigné.
+## Structure actuelle
+
+```
+server/
+├── enbref.server.slnx
+├── Directory.Build.props        suppression d'audit NuGet (AutoMapper, cf. le fichier)
+├── Directory.Packages.props     versions centralisées
+├── global.json                  SDK .NET 10
+└── src/
+    ├── Api/                     hôte web, contrôleurs, DI, Dockerfile
+    ├── BuildingBlocks/
+    │   ├── Application/         IAiAgent, IRepository, IObjectStorage*, logging
+    │   └── Infrastructure/      LiteDB, ntfy, lecture RSS, HTTP, JSON
+    └── Modules/EnBref/          le module métier — voir son README
+```
+
+Le détail du module et son flux de données : [`src/Modules/EnBref/README.md`](src/Modules/EnBref/README.md).
 
 ## Configuration
 
-Secrets, via le Secret Manager en local (`dotnet user-secrets --project src/Api`) et via des
-variables d'environnement en conteneur :
-
 | Clé | Rôle |
 |---|---|
-| `OpenAiApiKey` | Génération et formatage du récap |
-| `GithubToken` | Publication sur `yterraillon/yterraillon.github.io` |
-| `NtfyToken` | Notification d'échec sur ntfy |
-| `EnBrefConnectionString` | Azure Blob — hérité, inutilisé depuis le passage au CDN GitHub |
+| `OpenAiApiKey` | Génération du récap (à remplacer par l'API Claude) |
+| `GithubToken` | Publication sur `yterraillon.github.io` — **vide en local** |
+| `NtfyToken` | Notification d'échec de génération |
+| `EnBrefConnectionString` | Azure Blob — hérité, inutilisé |
 
-Base LiteDB : `..\Database\EnBref.db` en local, `/data/EnBref.db` en conteneur
-(`ConnectionStrings` dans `src/Api/appsettings.json`). Le basculement local ↔ conteneur se fait sur
-`ASPNETCORE_ENVIRONMENT` : toute valeur autre que `Development` active les chemins conteneur.
+## Le job quotidien
 
-## Génération quotidienne
+Quartz déclenche `GenerateDailyRecapJob` à 17 h (`0 0 17 * * ?`, fuseau du conteneur =
+`Europe/Paris`). Il enchaîne collecte, génération et publication, puis notifie sur ntfy en cas
+d'échec.
 
-Le job Quartz `GenerateDailyRecapJob` est enregistré par `AddEnBrefInfrastructure` et déclenche une
-génération tous les jours à **17:00** (cron `0 0 17 * * ?`, fuseau du conteneur). Il tourne donc dans
-toute instance du serveur, stack locale comprise.
+Ce job tourne **aussi dans la stack locale** : laisser la stack allumée à 17 h avec un `GithubToken`
+renseigné publierait sur le CDN de production.
 
-## Dette assumée
+## Écarts avec les règles du projet
 
-Reprise iso de myfanwy, à traiter au refactoring :
+À traiter au refactor. Détail en [§ 6 de l'architecture](../docs/architecture.md#6-état-réel-du-serveur)
+et au [§ 9 du glossaire](../docs/ubiquitous-language.md#9-incohérences-connues).
 
-- Le vocabulaire du code (`Section`, `RecapSectionMetric`, `latest-recap.json`) précède
-  `docs/ubiquitous-language.md` et le contredit — écart consigné au § 9 du glossaire.
-- Le LLM est OpenAI, pas l'API Claude visée.
-- `BuildingBlocks/Infrastructure/RssReader` et `Application/Logging/LoggingBehavior` sont importés
-  sans être utilisés ; les lecteurs/écrivains Azure Blob sont commentés dans la DI.
-- Le topic ntfy reste `https://ntfy.checquy.ovh/myfanwy`, codé en dur dans
-  `BuildingBlocks/Infrastructure/DependencyInjection.cs`.
-- Aucun projet de test : l'étape `test` de la CI est à rétablir avec le premier.
+| Cible | Réel |
+|---|---|
+| Vertical slices | `Modules/EnBref/{Application,Infrastructure}` |
+| Pas de MediatR | MediatR 12, `ISender`, `IRequestHandler` |
+| API Claude | Deux agents OpenAI enchaînés |
+| 7 catégories fixes portant des brèves | `Section { Title, Text }` libre |
+| Flux en configuration | Deux URLs en dur dans le handler |
+
+**À traiter en priorité :** `GET /api/enbref/en-bref` déclenche une génération complète. L'endpoint
+est anonyme, consomme des crédits LLM à chaque appel et écrase le récap publié.
+
+## Tests
+
+Les tests end-to-end Bruno sont à la racine du dépôt : [`tests/`](../tests/). Il n'y a pas encore de
+tests unitaires côté serveur — leur emplacement reste à trancher.

@@ -160,7 +160,7 @@ génération et ne fait appel à aucun LLM.
 **Code** : `Generation` · **UI** : « Génération »
 
 L'étape qui transforme les titres collectés en un récap, via le LLM. Le job quotidien enchaîne
-collecte puis génération à 16 h ; en cas d'échec, trois tentatives avant alerte.
+collecte puis génération à 17 h ; en cas d'échec, trois tentatives avant alerte sur ntfy.
 
 **À ne pas dire** : build, création, compilation, traitement.
 
@@ -256,9 +256,33 @@ budget de lecture est la contrainte, le plafond de caractères n'en est que la t
 confiance dans le rapport ; **en revanche, du code ou de la doc neufs qui les reproduisent sont
 bloquants**.
 
-- **`.claude/CLAUDE.md` § Project Overview** — emploie « récap de test » pour désigner ce que le
-  glossaire appelle désormais le **récap de démo** (§ 2), et « le récap du jour non caché » pour un
-  affichage back-office qui reste à nommer. À corriger lors de la mise à jour du `CLAUDE.md`.
+### Écarts du serveur importé
+
+Le code de `server/` vient du dépôt `myfanwy` et est antérieur à ce glossaire. Il sera repris lors du
+refactor en vertical slices. Le tableau ci-dessous fait foi ; `server/src/Modules/EnBref/README.md`
+en donne la version locale.
+
+| Code actuel | Terme canonique | Nature de l'écart |
+|---|---|---|
+| `Section` (titre + texte libre) | `Category` portant des `Brief` | Le modèle n'a ni catégories fixes ni brèves : le LLM invente ses sections et y met du texte en vrac. C'est l'écart structurant. |
+| `Recap.Title` | — | Un récap n'a pas de titre au glossaire. Le champ existe (« Récap du … ») et est asserté par le test Bruno. |
+| `RecapSectionMetric` | relève de `History` | Seules des métriques sont conservées en base, pas les récaps passés : l'historique n'existe pas encore. |
+| `latest-recap.json` | `latest.json` | Chemin publié réel : `cdn/en-bref/data/latest-recap.json`. |
+| `OpenAiAgents`, `OpenAiApiKey` | API Claude | Deux agents OpenAI enchaînés (rédaction puis mise en forme JSON). |
+| `IObjectStorageWriter` / `Reader` | `Publication` | La publication passe par une abstraction de stockage d'objets héritée d'Azure Blob. |
+| `AzureBlobStorage/` | — | Code mort, commenté dans la DI, `EnBrefConnectionString` inutilisé. |
+| `GetNewsTitles()` | `Collecte` | Deux flux en dur dans le handler (20 Minutes, Le Figaro), pas en configuration. |
+
+Absents du code à ce stade : le **récap de démo**, le **récap de test**, le **back-office**, les
+**crédits** et la **disponibilité**.
+
+### Autres écarts
+
+- **`.claude/CLAUDE.md` § Project Overview** — employait « récap de test » pour désigner le **récap
+  de démo** (§ 2) ; corrigé. « Le récap du jour non caché » désigne un affichage back-office qui
+  reste à nommer si on l'implémente.
+- **Heure de génération** — 17 h, conformément au cron `0 0 17 * * ?` du job. Le tableau d'écarts de
+  `server/src/Modules/EnBref/README.md` mentionnait 16 h comme cible ; c'est 17 h qui fait foi.
 - **Accentuation et nombre des catégories** — le glossaire retient « Économie » (accentué) et
   « Technologies » (pluriel) comme libellés d'interface. À confirmer au premier rendu réel dans
   l'application.
@@ -267,11 +291,3 @@ bloquants**.
 - **Aucune attribution de source** — les brèves ne citent pas les titres collectés dont elles
   proviennent. C'est un choix assumé pour la première version, pas un oubli. Le jour où
   l'attribution arrive, le lien brève → titre collecté devra être nommé ici avant d'être implémenté.
-- **`server/` — code importé de myfanwy** — le module EnBref a été déplacé tel quel depuis le
-  monolithe myfanwy, sans refactoring, avant l'écriture de ce glossaire. Son vocabulaire le
-  contredit sur cinq points : `Section` (titre + texte libre) là où le glossaire distingue
-  **Catégorie** (`Category`) et **Brève** (`Brief`, § 3) ; `RecapSectionMetric` pour ce qui relève de
-  l'**Historique** (§ 5) ; l'artefact publié s'appelle `latest-recap.json` et non `latest.json`
-  (§ 2) ; la génération emploie OpenAI et non l'API Claude ; elle tourne à 17 h et non 16 h (§ 5).
-  Écart assumé le temps du déménagement, à résorber au refactoring — d'ici là, aucun code neuf ne
-  doit le propager.

@@ -64,6 +64,6 @@ Code repris iso de myfanwy, antérieur à `docs/ubiquitous-language.md` :
 | `RecapSectionMetric` | relève de l'historique (`History`) |
 | `latest-recap.json` | `latest.json` |
 | OpenAI | API Claude |
-| 17:00 | 16:00 |
+| flux RSS en dur dans le handler | `Collecte` configurée |
 
 Ces écarts sont consignés au § 9 du glossaire. Ne pas les reproduire dans du code neuf.

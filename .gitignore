@@ -420,8 +420,15 @@ FodyWeavers.xsd
 # Rider
 **/.idea/
 
-# Data Files
-**/Data/
+# Données locales
+# ⚠️ Ne PAS remettre `**/Data/` : la règle attraperait aussi un dossier source
+# `server/src/.../Data/` (DbContext, migrations), qui serait ignoré sans bruit.
+# On ne vise que les volumes de données réellement produits à l'exécution.
+infra/data/
+**/App_Data/
+*.db
+*.db-log
+
 .DS_Store
 
 # iOS / Xcode
