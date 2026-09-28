@@ -65,7 +65,7 @@ aggrave est bloquant.**
 
 - **Tout `server/src/Modules/EnBref/`** — importé de myfanwy : MediatR, découpage
   Application/Infrastructure, modules, agents OpenAI, `Section { Title, Text }` au lieu de
-  catégories et de brèves, flux RSS en dur, code Azure Blob mort. Recensé en
+  catégories et de brèves, flux RSS en dur. Recensé en
   `docs/architecture.md` § 6 et `docs/ubiquitous-language.md` § 9.
 - **`GET /api/enbref/en-bref`** — déclenche une génération complète, anonyme, qui consomme des
   crédits et écrase le récap publié. Connu, à corriger en premier. Ne le signale que si le
@@ -179,7 +179,7 @@ Vérifie aussi que les trois récaps ne sont pas confondus — glossaire § 2, e
 
 ### E. Secrets et configuration
 
-Quatre clés (`OpenAiApiKey`, `GithubToken`, `NtfyToken`, `EnBrefConnectionString`), lues dans le
+Trois clés (`OpenAiApiKey`, `GithubToken`, `NtfyToken`), lues dans le
 Secret Manager en développement et en variables d'environnement en `Production`.
 
 Est bloquant : une valeur en clair dans le dépôt, un secret dans un fichier d'exemple, une clé

@@ -126,9 +126,9 @@ refactoré ; d'ici là, il ne sert pas de modèle.
 | Flux configurés | Deux URLs en dur dans `GenerateDailyRecap.Handler` |
 | Historique des récaps | Seules des métriques de sections en LiteDB |
 
-À quoi s'ajoutent : le code Azure Blob mort mais conservé, et
-`GET /api/enbref/en-bref` qui **déclenche une génération complète** — un appel non authentifié qui
-consomme des crédits LLM et écrase le récap publié. C'est le point à traiter en premier.
+À quoi s'ajoute `GET /api/enbref/en-bref` qui **déclenche une génération complète** — un appel non
+authentifié qui consomme des crédits LLM et écrase le récap publié. C'est le point à traiter en
+premier.
 
 Les écarts de vocabulaire sont recensés au § 9 du glossaire.
 

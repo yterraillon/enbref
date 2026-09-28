@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
@@ -22,9 +22,6 @@
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
-
-    <!-- Azure -->
-    <PackageVersion Include="Azure.Storage.Blobs" Version="12.23.0" />
 
     <!-- Data & Serialization -->
     <!-- 14.0.0 is the last MIT-licensed version: do not upgrade (15.0.0+ is commercially licensed) -->

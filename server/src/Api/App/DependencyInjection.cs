@@ -6,19 +6,16 @@ namespace Api.App;
 
 public static class DependencyInjection
 {
-    public static void LoadModules(this IServiceCollection services, bool isDevelopment)
+    public static void LoadModules(this IServiceCollection services)
     {
         services.AddEnBrefApplication();
-        services.AddEnBrefInfrastructure(isUsingDocker: isDevelopment);
+        services.AddEnBrefInfrastructure();
     }
 
     public static void LoadConfigurations(this IServiceCollection services, WebApplicationBuilder builder)
     {
         services.AddSingleton<global::EnBref.Infrastructure.Settings>(_ => new global::EnBref.Infrastructure.Settings
         {
-            EnBrefConnectionString = builder.Environment.IsDevelopment() ?
-                builder.Configuration["EnBrefConnectionString"] :
-                Environment.GetEnvironmentVariable("EnBrefConnectionString"),
             OpenAiApiKey = builder.Environment.IsDevelopment() ?
                 builder.Configuration["OpenAiApiKey"] :
                 Environment.GetEnvironmentVariable("OpenAiApiKey"),

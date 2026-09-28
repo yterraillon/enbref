@@ -15,14 +15,11 @@ namespace EnBref.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static void AddEnBrefInfrastructure(this IServiceCollection services, bool isUsingDocker = false)
+    public static void AddEnBrefInfrastructure(this IServiceCollection services)
     {
         var openAiUrl = new Uri("https://api.openai.com/v1/chat/completions");
         var githubApiUrl = new Uri("https://api.github.com");
         var githubCdnUrl = new Uri("https://yterraillon.github.io");
-        
-        // services.AddSingleton<IObjectStorageReader<Recap>, AzureBlobStorageReader>();
-        // services.AddSingleton<IObjectStorageWriter<Recap>, AzureBlobStorageWriter>();
         
         services.AddHttpClient<IObjectStorageWriter<Recap>, GithubCdnPublisher>("en-bref-cdn-publisher", client =>
         {
@@ -41,16 +38,6 @@ public static class DependencyInjection
         });
         
         services.AddTransient<IRssReader, RssReaderService>();
-        services.AddTransient<LocalStorageService>();
-
-        if (isUsingDocker)
-        {
-            services.AddSingleton<ILocalStorageContext, DockerLocalStorageContext>();
-        }
-        else
-        {
-            services.AddSingleton<ILocalStorageContext, LocalStorageContext>();
-        }
         
         services.AddHttpClient<IAiAgent<IEnumerable<string>, string>, RecapBuilderAgent>("recap-builder-agent", client =>
         {

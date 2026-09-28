@@ -5,11 +5,11 @@ namespace EnBref.Application.Features;
 
 public static class DisplayLatestRecap
 {
-    public class Handler(IObjectStorageReader<Recap> azureStorageReader) : IRequestHandler<Request, Response>
+    public class Handler(IObjectStorageReader<Recap> recapReader) : IRequestHandler<Request, Response>
     {
         public async Task<Response> Handle(Request request, CancellationToken cancellationToken)
         {
-            var latestRecap = await azureStorageReader.GetObjectContentAsync(LatestRecapFileName);
+            var latestRecap = await recapReader.GetObjectContentAsync(LatestRecapFileName);
             return new Response(latestRecap);
         }
     }
