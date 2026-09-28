@@ -1,0 +1,9 @@
+# Normalisation des fins de ligne : LF partout, dépôt et copie de travail.
+# Le projet tourne en conteneurs Linux — aucun fichier n'exige du CRLF.
+# Cette règle prime sur le core.autocrlf local de chaque poste.
+* text=auto eol=lf
+
+# Binaires — jamais de conversion
+*.png   binary
+*.ico   binary
+*.docx  binary

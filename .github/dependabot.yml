@@ -1,0 +1,49 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: monthly
+    groups:
+      npm-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      npm-major:
+        patterns: ["*"]
+        update-types: [major]
+
+  - package-ecosystem: nuget
+    directory: /server
+    schedule:
+      interval: monthly
+    groups:
+      nuget-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      nuget-major:
+        patterns: ["*"]
+        update-types: [major]
+
+  - package-ecosystem: docker
+    directory: /infra
+    schedule:
+      interval: monthly
+    groups:
+      docker-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      docker-major:
+        patterns: ["*"]
+        update-types: [major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions-minor-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+      actions-major:
+        patterns: ["*"]
+        update-types: [major]
