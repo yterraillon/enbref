@@ -38,8 +38,8 @@ La stack vit dans le dépôt d'infrastructure `checquy`, aux côtés des autres 
 `stacks/apps/enbref/docker-compose.yml`. Elle suit les conventions maison — réseau `appNet`,
 `read_only: true`, `cap_drop: ALL`, `no-new-privileges`, logging json-file 10m/3, PUID/PGID du NAS.
 
-Secrets injectés en variables d'environnement par la stack : `OpenAiApiKey`, `GithubToken`,
-`NtfyToken`, `EnBrefConnectionString`.
+Secrets injectés en variables d'environnement par la stack : `OpenAiApiKey`, `GithubToken` et
+`NtfyToken`.
 
 Mise à jour : relever le tag CalVer dans le compose, puis redéployer la stack.
 

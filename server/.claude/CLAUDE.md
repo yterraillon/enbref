@@ -94,7 +94,7 @@ chose** (`Recap.Title` + `Section { Title, Text }` libres) : c'est l'écart prin
 
 ## Configuration et secrets
 
-Quatre clés, lues dans le Secret Manager en développement et dans les variables d'environnement
+Trois clés, lues dans le Secret Manager en développement et dans les variables d'environnement
 en `Production` (bascule dans `Api/App/DependencyInjection.cs`) :
 
 | Clé | Rôle |
@@ -102,7 +102,6 @@ en `Production` (bascule dans `Api/App/DependencyInjection.cs`) :
 | `OpenAiApiKey` | génération — à remplacer par l'API Claude (ADR-003) |
 | `GithubToken` | publication — **vide en local**, sinon on écrase la production |
 | `NtfyToken` | notification d'échec |
-| `EnBrefConnectionString` | Azure Blob, hérité et inutilisé — à supprimer |
 
 Aucun secret en clair dans le dépôt, y compris dans `.agentsworkspace/`.
 

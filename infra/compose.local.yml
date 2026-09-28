@@ -28,9 +28,9 @@ services:
       - .env.local
     environment:
       # Production, et non Development : c'est ce qui bascule le code sur les
-      # chemins conteneur (`/data/EnBref.db`, `/data/en-bref/`) et fait lire les
-      # secrets dans les variables d'environnement plutôt que dans le Secret
-      # Manager — voir Api/App/DependencyInjection.cs et Program.cs.
+      # chemins conteneur (`/data/EnBref.db`) et fait lire les secrets dans les
+      # variables d'environnement plutôt que dans le Secret Manager — voir
+      # Api/App/DependencyInjection.cs et Program.cs.
       - ASPNETCORE_ENVIRONMENT=Production
       - TZ=Europe/Paris
     volumes:

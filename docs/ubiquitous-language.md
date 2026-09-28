@@ -269,8 +269,7 @@ en donne la version locale.
 | `RecapSectionMetric` | relève de `History` | Seules des métriques sont conservées en base, pas les récaps passés : l'historique n'existe pas encore. |
 | `latest-recap.json` | `latest.json` | Chemin publié réel : `cdn/en-bref/data/latest-recap.json`. |
 | `OpenAiAgents`, `OpenAiApiKey` | API Claude | Deux agents OpenAI enchaînés (rédaction puis mise en forme JSON). |
-| `IObjectStorageWriter` / `Reader` | `Publication` | La publication passe par une abstraction de stockage d'objets héritée d'Azure Blob. |
-| `AzureBlobStorage/` | — | Code mort, commenté dans la DI, `EnBrefConnectionString` inutilisé. |
+| `IObjectStorageWriter` / `Reader` | `Publication` | Abstraction héritée de l'ancien stockage Azure Blob, lui-même supprimé ; seule l'abstraction reste, et son nom ne dit plus ce qu'elle fait. |
 | `GetNewsTitles()` | `Collecte` | Deux flux en dur dans le handler (20 Minutes, Le Figaro), pas en configuration. |
 
 Absents du code à ce stade : le **récap de démo**, le **récap de test**, le **back-office**, les

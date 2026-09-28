@@ -20,7 +20,7 @@ builder.Services.ConfigureLogging();
 builder.Services.AddInfrastructureBlocks(isUsingDocker: !builder.Environment.IsDevelopment());
 
 Console.WriteLine("Loading modules...");
-builder.Services.LoadModules(isDevelopment: !builder.Environment.IsDevelopment());
+builder.Services.LoadModules();
 builder.Services.LoadConfigurations(builder);
 
 var app = builder.Build();

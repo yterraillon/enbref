@@ -52,7 +52,6 @@ Le détail du module et son flux de données : [`src/Modules/EnBref/README.md`](
 | `OpenAiApiKey` | Génération du récap (à remplacer par l'API Claude) |
 | `GithubToken` | Publication sur `yterraillon.github.io` — **vide en local** |
 | `NtfyToken` | Notification d'échec de génération |
-| `EnBrefConnectionString` | Azure Blob — hérité, inutilisé |
 
 ## Le job quotidien
 

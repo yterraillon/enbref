@@ -38,9 +38,7 @@ Modules/EnBref/
 └── EnBref.Infrastructure/
     ├── OpenAiAgents/       RecapBuilderAgent, RecapFormatterAgent (+ prompts)
     ├── GithubCdn/          GithubCdnPublisher (écriture), GithubCdnReader (lecture)
-    ├── AzureBlobStorage/   ancien stockage — conservé mais commenté dans la DI
     ├── Databases/          EnBrefDbContext, RecapSectionMetricRepository (LiteDB)
-    ├── LocalStorage/       chemins de travail local / conteneur
     ├── RssReader/          lecture des flux via System.ServiceModel.Syndication
     └── ScheduledJobs/      GenerateDailyRecapJob (cron `0 0 17 * * ?`)
 ```
@@ -52,7 +50,6 @@ Modules/EnBref/
 | `OpenAiApiKey` | Clé API OpenAI (les deux agents) |
 | `GithubToken` | Publication sur `yterraillon/yterraillon.github.io` |
 | `NtfyToken` | Notification d'échec de génération |
-| `EnBrefConnectionString` | Azure Blob — hérité, inutilisé |
 
 ## Écarts avec le glossaire
 
