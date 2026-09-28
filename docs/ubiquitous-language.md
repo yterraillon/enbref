@@ -39,7 +39,7 @@ chacune portant une à deux brèves.
 ### Récap du jour
 **Code** : `DailyRecap` · **UI** : « Récap du jour » · **Artefact** : `latest.json`
 
-Le récap le plus récent. Produit chaque jour à 16 h par le job de génération, à partir de l'API
+Le récap le plus récent. Produit chaque jour à 17 h par le job de génération, à partir de l'API
 Claude, puis publié sur le dépôt de publication. C'est le seul récap que l'application iOS consomme
 en usage normal.
 
@@ -267,3 +267,11 @@ bloquants**.
 - **Aucune attribution de source** — les brèves ne citent pas les titres collectés dont elles
   proviennent. C'est un choix assumé pour la première version, pas un oubli. Le jour où
   l'attribution arrive, le lien brève → titre collecté devra être nommé ici avant d'être implémenté.
+- **`server/` — code importé de myfanwy** — le module EnBref a été déplacé tel quel depuis le
+  monolithe myfanwy, sans refactoring, avant l'écriture de ce glossaire. Son vocabulaire le
+  contredit sur cinq points : `Section` (titre + texte libre) là où le glossaire distingue
+  **Catégorie** (`Category`) et **Brève** (`Brief`, § 3) ; `RecapSectionMetric` pour ce qui relève de
+  l'**Historique** (§ 5) ; l'artefact publié s'appelle `latest-recap.json` et non `latest.json`
+  (§ 2) ; la génération emploie OpenAI et non l'API Claude ; elle tourne à 17 h et non 16 h (§ 5).
+  Écart assumé le temps du déménagement, à résorber au refactoring — d'ici là, aucun code neuf ne
+  doit le propager.

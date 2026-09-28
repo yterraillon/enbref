@@ -1,0 +1,49 @@
+# Stack: enbref-local
+# Stack Docker locale — l'image serveur buildée depuis les sources, telle qu'elle
+# partira en production.
+#
+# Usage:
+#   cp infra/.env.local.example infra/.env.local   # puis renseigner les secrets
+#   docker compose -f infra/compose.local.yml up -d --build --wait
+#   docker compose -f infra/compose.local.yml logs -f
+#   docker compose -f infra/compose.local.yml down      # arrêt
+#   docker compose -f infra/compose.local.yml down -v   # + purge des données
+#
+# Accès:
+#   http://localhost:8080/swagger   API
+#   http://localhost:8080/health    sonde
+#
+# ⚠️ Le job Quartz de génération quotidienne (17:00) tourne aussi dans cette stack :
+#    la laisser allumée à 17 h publie un récap sur le CDN GitHub si GithubToken est
+#    renseigné. Laisser GithubToken vide pour un usage purement local.
+services:
+  enbref-server:
+    build:
+      context: ../server
+      dockerfile: src/Api/Dockerfile
+    container_name: enbref-local-server
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env.local
+    environment:
+      # Production, et non Development : c'est ce qui bascule le code sur les
+      # chemins conteneur (`/data/EnBref.db`, `/data/en-bref/`) et fait lire les
+      # secrets dans les variables d'environnement plutôt que dans le Secret
+      # Manager — voir Api/App/DependencyInjection.cs et Program.cs.
+      - ASPNETCORE_ENVIRONMENT=Production
+      - TZ=Europe/Paris
+    volumes:
+      - ./data:/data
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

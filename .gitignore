@@ -453,3 +453,6 @@ ios/fastlane/keys/
 !.agentsworkspace/README.md
 # Test agent (artefacts du pipeline de génération de tests)
 .testagent/
+
+# Base LiteDB créée au premier démarrage local du serveur (server/src/Api → ..\Database\EnBref.db)
+server/src/Database/
