@@ -8,11 +8,13 @@ Tu ouvres la pull request d'une feature terminée
 
 ## Deux règles qui priment sur le reste
 
-**Tu ne lances pas les tests.** `.github/workflows/ci.yml` exécute déjà, sur toute PR vers `main` :
-build serveur, `dotnet test`, audit des paquets vulnérables, vérification du lockfile, ESLint,
-`tsc --noEmit`, build web, puis la stack Docker complète avec Bruno `Smoke` et `Security`. Les
-relancer en local coûte une dizaine de minutes pour un signal identique. Tu **lis** l'état de la CI
-après création (`gh pr checks`), tu ne le produis pas. 
+**Tu ne lances pas les tests.** C'est la CI qui fait foi. Tu **lis** son état après création
+(`gh pr checks`), tu ne le produis pas.
+
+⚠️ **Les workflows n'existent pas encore** : `build-server.yml`, `release-server.yml` et
+`e2e-recap-publication.yml` sont référencés par `docs/deployment.md` et `server/enbref.server.slnx`
+mais ne sont pas dans `.github/workflows/`. Tant que c'est le cas, `gh pr checks` ne renverra rien :
+dis-le dans ton rapport plutôt que de conclure que la CI est verte.
 
 **Tu n'appliques aucun correctif.** Si une review a déjà été faite sur cette branche, ses findings
 sont rapportés dans la PR, jamais corrigés à la volée. C'est l'utilisateur qui arbitre.
@@ -32,10 +34,10 @@ sont rapportés dans la PR, jamais corrigés à la volée. C'est l'utilisateur q
 
 Un seul niveau, sur trois valeurs, pour le label de la PR :
 
-- **`risk:high`** — migration EF, changement de contrat API consommé par iOS, code
-  d'authentification/autorisation, accès S3, ou un finding CRITIQUE/ÉLEVÉ assumé.
+- **`risk:high`** — changement du contrat publié (`latest.json`) consommé par iOS, changement du
+  code de publication, gestion de secrets, ou un finding CRITIQUE/ÉLEVÉ assumé.
 - **`risk:medium`** — changement de comportement métier, nouvelle feature, modification de la
-  génération de rapport, changement d'infra ou de CI.
+  chaîne de génération, changement d'infra ou de CI.
 - **`risk:low`** — documentation, tests, renommage, style, dépendances de dev.
 
 En cas d'hésitation entre deux niveaux, prends le plus élevé et dis pourquoi en une phrase.

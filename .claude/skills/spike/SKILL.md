@@ -27,6 +27,17 @@ Tu analyses l'issue $2 du repo $1.
 
 Ne modifie AUCUN fichier du repo. Analyse et commentaires uniquement.
 
+## Contexte du projet
+
+EnBref produit un récap quotidien de l'actualité à partir de titres RSS, le publie sur GitHub Pages,
+et une app iOS le lit. **Le serveur n'est pas exposé sur internet** (ADR-001) et il n'y a ni compte
+ni utilisateur.
+
+⚠️ **Le serveur de `server/` vient d'être importé de myfanwy et n'est pas conforme** aux règles du
+projet (MediatR, modules, OpenAI, modèle de récap différent de la cible). Voir
+`docs/architecture.md` § 6. Un plan qui s'appuie sur ces structures pour du code neuf est à
+signaler ; un plan qui les refactore est légitime.
+
 ## Format du commentaire
 
 Un seul commentaire, trois sections séparées par `---`. Ne mélange jamais le
@@ -70,7 +81,8 @@ cette section. Vocabulaire de `docs/ubiquitous-language.md` obligatoire.
 - <Ce qui peut casser ailleurs, ce qui est irréversible, ce qui est incertain.>
 
 ### Tests
-- <Unitaires / intégration / Bruno (Smoke, Security) / vérification manuelle.>
+- <Bruno end-to-end, vérification manuelle, tests serveur si l'emplacement est
+  tranché d'ici là.>
 
 ### Impacts architecture → ADR
 - <Sujet structurant → décision à acter, en une ligne.>
@@ -81,11 +93,11 @@ rien n'est structurant, écris-le noir sur blanc : « Aucun impact architecture
 identifié. » Une absence de section se lit comme un oubli, pas comme un
 constat.
 
-Sont structurants : l'ajout ou le retrait d'une dépendance, un déplacement de
-frontière entre modules ou contextes, une rupture du contrat d'API consommé par
-`web/` ou `ios/`, un changement du modèle de données partagé, la stratégie
-d'isolation tenant ou d'autorisation, l'arborescence S3, le pipeline CI/CD et le
-versionnement, et tout mécanisme transverse (cache, jobs de fond, transactions).
+Sont structurants : l'ajout ou le retrait d'une dépendance, une rupture du
+contrat publié, toute fonctionnalité qui exigerait d'exposer le serveur, un
+changement du modèle de données, un changement de fournisseur LLM, le pipeline
+CI/CD et le versionnement, et tout mécanisme transverse (cache, jobs de fond,
+notifications).
 
 Le spike **n'écrit pas l'ADR** — il le signale. La rédaction se fait dans
 `docs/architecture-decision-record.md`, dans le même changement que le code, en
@@ -103,43 +115,51 @@ note d'une ligne — un statut sans justification n'est pas relisable.
 | Critère | Statut | Note |
 |---|---|---|
 | Critères d'acceptation observables et testables | | |
-| Contextes DDD impactés identifiés (modules serveur, slices web) | | |
-| Impact isolation tenant évalué | | |
+| Contrat publié : le récap change-t-il de forme ? | | |
+| Le serveur reste-t-il non exposé (ADR-001) ? | | |
 | Vocabulaire conforme au glossaire (ou notion nouvelle à définir) | | |
-| Contrat d'API : rupture pour `web/` ou `ios/` ? | | |
-| Données : migration EF nécessaire ? réversible ? | | |
-| Sécurité : rôle requis (`User`, `TenantAdmin`, `Admin`) | | |
+| Forme du code neuf : vertical slice, sans MediatR ni module | | |
+| Coût LLM : la génération reste-t-elle non déclenchable par accident ? | | |
+| Secrets : nouvelle clé de configuration à documenter ? | | |
 | Impact architecture → ADR (cf. plan) | | |
 ```
 
-Précisions sur deux lignes qui se remplissent souvent à la légère :
+Précisions sur trois lignes qui se remplissent souvent à la légère :
 
-- **Contextes DDD** — nomme les modules concernés parmi `Activity`, `Clients`,
-  `Identity`, `Interventions`, `Subscriptions`, `Tenants`. Si le changement en
-  traverse plus de deux, dis-le : c'est un signal de découpage.
-- **Isolation tenant** — filtrage par `TenantId` en lecture *et* en écriture,
-  claim `tenant_id` du JWT, préfixe S3 `{tenant}/{client}/`, et sort réservé aux
-  clients legacy (`TenantId = null`). `➖` n'est légitime que si le changement ne
-  touche aucune donnée portant un tenant.
+- **Contrat publié** — `latest.json` est la seule chose que connaissent les
+  clients. Tout champ ajouté, renommé ou supprimé impacte l'app iOS **et** le
+  test Bruno `tests/endtoend/`. Rappel : un champ optionnel côté Swift avale
+  silencieusement une clé renommée — ça compile, et l'écran se vide. `➖` n'est
+  légitime que si rien de ce qui est publié ne bouge.
+- **Serveur non exposé** — un endpoint destiné à l'app, un historique
+  consultable depuis le client, une notification push ciblée : tout cela
+  contredit ADR-001 et demande un ADR de remplacement. Le back-office reste
+  LAN-only, ce qui est la raison pour laquelle il n'a pas d'authentification.
+- **Coût LLM** — une génération ne se déclenche que par le job planifié ou une
+  action explicite du back-office. Le récap de test ne publie jamais, et cette
+  garantie tient dans le code, pas dans un `GithubToken` laissé vide.
 
 Ce tableau est relu tel quel à la contre-étude : il doit se suffire à lui-même,
 sans relire le plan.
 
 ## Board
 
-EnBref Development Board — projet `3`, owner `yterraillon`. IDs stables :
+EnBref Development Board — projet `6`, owner `yterraillon`. IDs stables :
 
 | | |
 |---|---|
-| Project ID | `PVT_kwHOAKHwqs4BOqyt` |
-| Champ `Status` | `PVTSSF_lAHOAKHwqs4BOqytzg9TVBo` |
-| Option `Ready` | `1b424f7c` |
+| Project ID | `PVT_kwHOAKHwqs4BOqzm` |
+| Champ `Status` | `PVTSSF_lAHOAKHwqs4BOqzmzg9TVo8` |
+| Option `Ready` | `73e13010` |
+
+Autres options du champ `Status`, si besoin : `Ideas` `b8fdc431`, `Todo`
+`f75ad846`, `In Progress` `47fc9ee4`, `Done` `98236657`.
 
 **1. Récupère l'ID de la carte** (`--limit` est obligatoire : le défaut de 30
 tronque la liste et l'issue passerait pour absente) :
 
 ```bash
-gh project item-list 3 --owner yterraillon --limit 200 --format json \
+gh project item-list 6 --owner yterraillon --limit 200 --format json \
   --jq '.items[] | select(.content.repository == "$1" and .content.number == $2) | .id'
 ```
 
@@ -147,9 +167,9 @@ gh project item-list 3 --owner yterraillon --limit 200 --format json \
 
 ```bash
 gh project item-edit --id <ITEM_ID> \
-  --project-id PVT_kwHOAKHwqs4BOqyt \
-  --field-id PVTSSF_lAHOAKHwqs4BOqytzg9TVBo \
-  --single-select-option-id 1b424f7c
+  --project-id PVT_kwHOAKHwqs4BOqzm \
+  --field-id PVTSSF_lAHOAKHwqs4BOqzmzg9TVo8 \
+  --single-select-option-id 73e13010
 ```
 
 Si l'étape 1 ne renvoie rien, l'issue n'est pas sur le board : signale-le dans

@@ -14,11 +14,11 @@ jetable et non committé — ou nulle part.
 | | Catégorie | Exemple | Destination |
 |---|---|---|---|
 | **A** | À sa main, maintenant | parcours navigateur, lancer les suites Bruno | Checklist `## Suites` dans le corps de la PR + récap terminal |
-| **B** | Après merge / promote | vérifier le 1er tag CalVer, le 1er promote | Même checklist `## Suites` dans la PR |
-| **C** | Hors scope, durable | monitoring d'expiration SSL, dette technique repérée en passant | **Une issue GitHub par finding**, ajoutée au board, rattachée à la story |
+| **B** | Après merge / déploiement | vérifier le 1er tag CalVer, le 1er récap publié | Même checklist `## Suites` dans la PR |
+| **C** | Hors scope, durable | code hérité à supprimer, dette technique repérée en passant | **Une issue GitHub par finding**, ajoutée au board, rattachée à la story |
 
 **Arbitrage des cas limites :** si l'item est encore utile dans un mois → **C** ; s'il est attaché à
-un événement précis (merge, promote, release) → **B** ; sinon → **A**.
+un événement précis (merge, déploiement, release) → **B** ; sinon → **A**.
 
 **Jamais d'issue fourre-tout** type « X – post release » : une issue = un finding, fermable seule.
 
@@ -40,7 +40,7 @@ Rassemble les restes de la session, sans en écarter par avance :
 
 - ce que tu as annoncé ne pas pouvoir faire toi-même (validation visuelle, outil absent du PATH) ;
 - les findings d'une review qui n'ont pas été corrigés ;
-- les vérifications reportées à après le merge ou le promote ;
+- les vérifications reportées à après le merge ou le déploiement ;
 - les pistes explicitement écartées comme hors périmètre pendant l'implémentation.
 
 Si des fichiers de `.agentsworkspace/` concernent la story, inclus leur contenu.
@@ -70,8 +70,8 @@ gh issue create --title "[TECH] …" --body-file <tmp> \
 gh issue edit <nouvelle> --parent <story>
 ```
 
-- Préfixe de titre conforme au backlog : `[WEB]`, `[TECH]`, `[BACKOFFICE]`, `[iOS]`, `[ANDROID]`,
-  `[INFRA]`. Pas de préfixe si aucun ne s'applique.
+- Préfixe de titre conforme au backlog : `[SERVER]`, `[iOS]`, `[WEB]`, `[INFRA]`, `[TECH]`,
+  `[DOC]`. Pas de préfixe si aucun ne s'applique.
 - Corps **en français**, via `--body-file` (accents + multiligne), structuré ainsi :
 
 ```markdown
@@ -100,13 +100,14 @@ corps rédigé par `create-pr` :
 ## Suites
 
 ### À ta main avant merge
-- [ ] Parcours navigateur sur http://localhost:8088 …
+- [ ] Stack locale sur http://localhost:8080/swagger …
 
 ### Après merge
-- [ ] Vérifier les tags GHCR `:preview` + `:2026.MM.DD.01` au 1er run
+- [ ] Vérifier le tag GHCR `:2026.MM.DD.01` au 1er run
+- [ ] Vérifier le récap publié après le job de 17 h
 
 ### Hors scope — suivi ailleurs
-- #261 Monitoring d'expiration des certificats SSL
+- #12 Supprimer le code Azure Blob mort du module
 ```
 
 Puis `gh pr edit <n> --body-file <tmp>`. Les cases sont cochables directement dans la PR. Omets les

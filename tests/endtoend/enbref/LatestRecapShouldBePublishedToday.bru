@@ -1,0 +1,44 @@
+meta {
+  name: LatestRecapShouldBePublishedToday
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://yterraillon.github.io/cdn/en-bref/data/latest-recap.json
+  body: none
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+  User-Agent: Mozilla/5.0 (compatible; EnBref/1.0)
+}
+
+assert {
+  res.status: eq 200
+  res.body: isJson
+  res.body.title: isNotEmpty
+  res.body.title: startsWith Récap du
+  res.body.sections: isArray
+  res.body.createdAt: isString
+}
+
+tests {
+  const chai = require('chai');
+  
+  test("Recap should have been created today", function () {
+    const createdAt = res.body.createdAt
+    const creationDate = new Date(createdAt);
+    const today = new Date();
+    
+    expect(creationDate.getFullYear()).to.equal(today.getFullYear());
+    expect(creationDate.getMonth() + 1).to.equal(today.getMonth() + 1);
+    expect(creationDate.getDate()).to.equal(today.getDate());
+  });
+}
+
+docs {
+  Test that the latest recap is a json, and that it was generated today
+  This test is ran after today's recap should be generated and before it should be accessed. (so between 17h00 and 18h00)
+}

@@ -1,0 +1,50 @@
+name: E2E — publication du récap quotidien
+
+# Le test interroge le CDN GitHub, pas l'application : il reste valable quel que
+# soit le publieur (myfanwy ou enbref), y compris pendant la bascule.
+
+on:
+  schedule:
+    - cron: '30 16 * * *'  # tous les jours à 16h30 UTC — 17h30 Paris. Attention heure d'hiver / d'été.
+  workflow_dispatch:
+
+jobs:
+  run-bruno-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Bruno CLI
+        run: npm install -g @usebruno/cli
+
+      - name: Run Bruno test
+        id: run-bruno
+        working-directory: tests/endtoend/enbref
+        run: |
+            set +e
+            mkdir -p reports
+            bru run . --reporter-html ./reports/report.html
+            RESULT=$?
+            echo "result=$RESULT" >> $GITHUB_OUTPUT
+            exit 0
+
+      - name: Upload Bruno report to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bruno-report
+          path: tests/endtoend/enbref/reports
+
+      - name: Discord notification on failure
+        if: steps.run-bruno.outputs.result != '0'
+        run: |
+          curl -X POST https://discord.com/api/channels/1370001147711979661/messages \
+          -H "Authorization: Bot ${{secrets.DISCORD_TOKEN}}" \
+          -H "Content-Type: application/json" \
+          -d '{"content": "Something went wrong with today recap \n🔗 See report here : https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"}'

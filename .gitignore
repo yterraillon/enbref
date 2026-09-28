@@ -420,8 +420,15 @@ FodyWeavers.xsd
 # Rider
 **/.idea/
 
-# Data Files
-**/Data/
+# Données locales
+# ⚠️ Ne PAS remettre `**/Data/` : la règle attraperait aussi un dossier source
+# `server/src/.../Data/` (DbContext, migrations), qui serait ignoré sans bruit.
+# On ne vise que les volumes de données réellement produits à l'exécution.
+infra/data/
+**/App_Data/
+*.db
+*.db-log
+
 .DS_Store
 
 # iOS / Xcode
@@ -453,3 +460,6 @@ ios/fastlane/keys/
 !.agentsworkspace/README.md
 # Test agent (artefacts du pipeline de génération de tests)
 .testagent/
+
+# Base LiteDB créée au premier démarrage local du serveur (server/src/Api → ..\Database\EnBref.db)
+server/src/Database/

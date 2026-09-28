@@ -1,0 +1,132 @@
+# CLAUDE.md — server
+
+Conventions du serveur .NET 10 d'EnBref. Le vocabulaire métier vient de
+`docs/ubiquitous-language.md`, qui fait autorité ; ce fichier ne couvre que l'architecture et le
+style.
+
+## ⚠️ Lire ceci avant de copier quoi que ce soit
+
+Le code de `server/` a été importé du dépôt `myfanwy` **en conservant sa structure d'origine**. Il
+ne suit **aucune** des règles ci-dessous. Il sera refactoré ; d'ici là :
+
+- **ne pas prendre le code existant comme modèle** — il est la référence de ce qu'on quitte ;
+- **ne pas étendre les structures héritées** : pas de nouveau module, pas de nouveau
+  `IRequestHandler`, pas de nouvelle classe dans `BuildingBlocks/` « pour rester cohérent » ;
+- du code neuf conforme à côté de code ancien non conforme est **normal** pendant la transition.
+
+## Architecture cible — vertical slices
+
+Une fonctionnalité = **un dossier**, contenant tout ce dont elle a besoin : son endpoint, son
+handler, ses modèles de requête et de réponse, sa validation.
+
+```
+src/
+├── Features/
+│   ├── GenerateDailyRecap/
+│   ├── PublishRecap/
+│   └── …
+└── Shared/          uniquement ce qui sert à plusieurs slices
+```
+
+**Pas de MediatR.** Les handlers sont des classes ordinaires, injectées et appelées directement par
+l'endpoint. `ISender`, `IRequest<T>` et `IRequestHandler<,>` sont à retirer, pas à réutiliser.
+
+**Pas de modules.** Le domaine est l'application. `Modules/EnBref/` disparaîtra.
+
+**Pas de découpage `Application` / `Infrastructure` par projet.** Une abstraction vit auprès du code
+qui la consomme, pas dans un projet dédié.
+
+Ces trois points sont actés par l'ADR-002 — les contourner demande un nouvel ADR.
+
+### Quand une abstraction est justifiée
+
+Trois dépendances sortantes doivent rester derrière un contrat, chacune pour une raison précise :
+
+| Dépendance | Pourquoi l'abstraire |
+|---|---|
+| Flux RSS | les sources changent, le format aussi (RSS, Atom) |
+| LLM | Claude en production, modèles GitHub pour le récap de test : deux implémentations |
+| Dépôt de publication | la destination peut changer, et le récap de test ne doit **pas** publier |
+
+**LiteDB n'en fait pas partie.** L'historique est un détail interne ; un `IRepository<T>` posé « au
+cas où » ajoute de l'indirection sans bénéfice.
+
+Règle générale : une abstraction devient partagée quand un **deuxième** appelant la réclame, pas
+avant. `Shared/` n'est pas un endroit où ranger les choses par défaut.
+
+## Ce qui est interdit
+
+- **Un endpoint qui déclenche une génération sans intention explicite.** `GET /api/enbref/en-bref`
+  fait exactement ça aujourd'hui : anonyme, il consomme des crédits LLM et écrase le récap publié à
+  chaque appel. C'est le défaut à corriger en premier, et à ne jamais reproduire. Une génération se
+  déclenche par le job planifié ou par une action explicite du back-office.
+- **Publier depuis un chemin de test.** Le récap de test ne doit écraser ni `latest.json` ni
+  `demo.json`. Cette garantie se tient dans le code, pas dans la configuration.
+- **Exposer le serveur.** Aucun endpoint n'est destiné à un client externe. Le back-office est
+  LAN-only et c'est ce qui lui permet de se passer d'authentification.
+- **Ajouter une dépendance sans ADR.** `Directory.Packages.props` centralise les versions ; une
+  entrée nouvelle est une décision.
+- **Mettre une règle métier dans un contrôleur, un job Quartz ou un composant Blazor.** Ces trois-là
+  déclenchent et affichent ; ils ne décident pas.
+
+## Le contrat publié
+
+`latest.json` est le seul contrat d'EnBref, et la seule chose que connaissent les clients.
+
+**Toute modification est une rupture** tant qu'une version déployée de l'app iOS lit l'ancienne
+forme. Un champ renommé devient `nil` côté Swift sans lever d'erreur : l'écran se vide en silence.
+Un changement de contrat exige un ADR et une vérification côté app — jamais un simple commit
+serveur.
+
+La forme cible est fixée au § 7 du glossaire : sept catégories ordonnées, une à deux brèves par
+catégorie, un titre et un résumé de 200 caractères maximum par brève. **Le code actuel publie autre
+chose** (`Recap.Title` + `Section { Title, Text }` libres) : c'est l'écart principal du refactor.
+
+## Nommage C#
+
+- Le vocabulaire métier suit le glossaire : `Recap`, `Brief`, `Category`, `Headline`, `Feed`,
+  `Source`, `Collection`, `Generation`, `Publication`, `History`.
+- `Headline` = titre brut RSS. `Brief.Title` = titre affiché. **Ne pas employer `Title` seul pour un
+  titre collecté.**
+- Anglais pour tout le code ; français pour les libellés d'interface, la documentation et les
+  messages destinés à un humain.
+- Un nom de fonctionnalité décrit l'intention : `GenerateDailyRecap`, `PublishRecap`.
+
+## Configuration et secrets
+
+Quatre clés, lues dans le Secret Manager en développement et dans les variables d'environnement
+en `Production` (bascule dans `Api/App/DependencyInjection.cs`) :
+
+| Clé | Rôle |
+|---|---|
+| `OpenAiApiKey` | génération — à remplacer par l'API Claude (ADR-003) |
+| `GithubToken` | publication — **vide en local**, sinon on écrase la production |
+| `NtfyToken` | notification d'échec |
+| `EnBrefConnectionString` | Azure Blob, hérité et inutilisé — à supprimer |
+
+Aucun secret en clair dans le dépôt, y compris dans `.agentsworkspace/`.
+
+## Le job quotidien
+
+Quartz, `0 0 17 * * ?`, fuseau du conteneur (`Europe/Paris`). Il enchaîne collecte, génération,
+publication, puis notifie sur ntfy en cas d'échec.
+
+Il tourne **aussi dans la stack locale**. Une stack laissée allumée à 17 h avec un `GithubToken`
+renseigné publie en production.
+
+## Tests
+
+Bruno, à la racine (`tests/endtoend/`), vérifie le **récap publié** et non le serveur — conséquence
+d'ADR-001. Il n'y a pas encore de tests unitaires serveur et leur emplacement n'est pas tranché :
+ne pas créer d'arborescence de tests sans en avoir parlé.
+
+## Build
+
+```bash
+dotnet build server/enbref.server.slnx
+dotnet run --project server/src/Api
+```
+
+SDK .NET 10 (`global.json`), versions de paquets centralisées
+(`Directory.Packages.props`). `Directory.Build.props` porte une suppression d'audit NuGet pour
+AutoMapper : la justification est dans le fichier, la relire avant d'y toucher.
