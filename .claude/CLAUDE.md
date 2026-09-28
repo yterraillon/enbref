@@ -5,9 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 EnBref est une application qui envoie un résumé quotidien de l'actualité, basés sur les titres de flux RSS avec un un monorepo structuré comme suis:
-- **server/** - .NET 10 API with Clean Architecture (see `server/.claude/CLAUDE.md`)
+- **server/** - .NET 10 API (see `server/.claude/CLAUDE.md`) et interface d'adminBlazor. Affiche : les crédits restants sur l'api, la disponibilité des LLMs utilisés, le récap du jour non caché (re-pull à chaque fois), le récap de test, permet de générer le récap (ou le récap de test) à la main. affichera plusieurs métriques utiles 
 - **ios/** - Swift 6 / SwiftUI app that displays the recap (see `ios/.claude/CLAUDE.md`)
-- **web/** - A décider / interface d'admin. Affiche : les crédits restants sur l'api, la disponibilité des LLMs utilisés, le récap du jour non caché (re-pull à chaque fois), le récap de test, permet de générer le récap (ou le récap de test) à la main. affichera plusieurs métriques utiles 
+- **web/** - Tech à décider - La landing page d'EnBref
 
 ## Ubiquitous Language
 
@@ -41,7 +41,7 @@ TODO
 
 ## Testing
 
-Bruno pour l'API et les tests end-to-end (`server/tests/endtoend/`)
+Bruno pour l'API et les tests end-to-end (`tests/endtoend/`)
 TODO
 
 
