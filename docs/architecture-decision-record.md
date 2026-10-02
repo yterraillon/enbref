@@ -52,7 +52,7 @@ sont tous sortants.
 
 ## ADR-002 — Vertical slices sans MediatR et sans modules
 
-**Date :** 2026-09-28 · **Statut :** Remplacé en partie par ADR-005 (découpage en projets)
+**Date :** 2026-09-28 · **Statut :** Remplacé par ADR-005
 
 ### Contexte
 
@@ -138,7 +138,7 @@ Versionnement **CalVer** `YYYY.MM.DD.NN`, posé en tag Docker, en label OCI
 
 ## ADR-005 — Reconstruction du serveur : projets Api et Infrastructure
 
-**Date :** 2026-10-02 · **Statut :** Accepté · **Remplace en partie :** ADR-002
+**Date :** 2026-10-02 · **Statut :** Accepté · **Remplace :** ADR-002 (dont il reconduit tout, sauf l'interdiction du découpage en projets)
 
 ### Contexte
 
@@ -171,3 +171,67 @@ Dépendances ajoutées : `Microsoft.AspNetCore.OpenApi` (document OpenAPI natif)
   `Infrastructure` peut les implémenter, ce qui les éloigne des slices qui les consomment.
 - **Coût :** le back-office partage le cycle de vie de l'API. Un plantage Blazor emporte le job
   planifié avec lui.
+
+---
+
+## ADR-006 — Déclencheur HTTP de génération protégé par clé
+
+**Date :** 2026-10-02 · **Statut :** Accepté
+
+### Contexte
+
+Une génération ne devait partir que du job planifié ou du back-office. Or il faut aussi pouvoir la
+déclencher à la main, depuis Bruno en développement ou pour un smoke test, sans attendre le
+back-office. Le serveur n'est pas exposé sur internet (ADR-001), mais un endpoint anonyme reste
+appelable par tout poste du réseau local, Swagger compris, et une génération consomme des crédits
+et peut écraser le récap publié.
+
+### Décision
+
+`POST /api/recaps/generations` est un **troisième déclencheur** autorisé. Il exige le header
+`X-Api-Key`, comparé en temps constant à la clé de configuration `GenerationApiKey`. Si la clé n'est
+pas configurée, le endpoint est **fermé** (401) et non ouvert. Le job et le back-office appellent le
+handler en mémoire, sans passer par la clé.
+
+Le caractère LAN-only du serveur et du back-office est garanti par l'**infrastructure** (aucun port
+publié vers internet sur le NAS), pas par le code : le back-office reste sans authentification.
+
+### Conséquences
+
+- Un appel accidentel ou anonyme sur le réseau local ne déclenche rien.
+- Bruno peut tester la chaîne de génération sans back-office. Le smoke test s'en sert pour générer
+  et publier un récap de démo, seul moyen de vérifier une publication réelle sans toucher
+  `latest.json`.
+- **Coût :** chaque smoke test remplace le récap de démo, qui doit ensuite être relu à la main.
+- **Coût :** un secret de plus à gérer, en local comme en production.
+- **Coût :** la clé ne distingue pas les types de récap. Qui la détient peut publier un récap du
+  jour ; seul le handler peut restreindre ce qu'un appel a le droit de faire.
+- **Coût :** si une règle réseau ouvrait le port par erreur, le back-office serait public. Rien dans
+  le code ne l'empêche.
+
+---
+
+## ADR-007 — Tests unitaires du serveur avec TUnit, sous `server/tests/`
+
+**Date :** 2026-10-02 · **Statut :** Accepté
+
+### Contexte
+
+L'emplacement des tests serveur n'était pas tranché. Le handler de génération enchaîne plusieurs
+étapes (collecte, génération, publication), avec une règle qui ne doit jamais casser : un récap de
+test n'est jamais publié.
+
+### Décision
+
+Tests unitaires avec **TUnit**, dans `server/tests/Api.Tests/`, référencé par la solution et lancé
+par `build-server.yml`. Le projet reflète l'arborescence de `src/Api` (un dossier par slice).
+`tests/` à la racine reste réservé aux tests end-to-end Bruno.
+
+### Conséquences
+
+- Les tests vivent à côté du code qu'ils couvrent, et la CI serveur les exécute.
+- TUnit s'appuie sur Microsoft.Testing.Platform : `global.json` le déclare comme runner de
+  `dotnet test`.
+- **Coût :** TUnit est plus jeune que xUnit ou NUnit, donc avec un écosystème et un outillage plus
+  réduits.
+- **Coût :** deux emplacements de tests, unitaires dans `server/tests/` et end-to-end dans `tests/`.

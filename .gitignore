@@ -463,3 +463,8 @@ ios/fastlane/keys/
 
 # Base LiteDB créée au premier démarrage local du serveur (server/src/Api → ..\Database\EnBref.db)
 server/src/Database/
+
+# EnBref
+infra/.env.local
+tests/endtoend/**/.env
+TestResults/

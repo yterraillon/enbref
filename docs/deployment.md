@@ -21,7 +21,7 @@ Dockerfile : `server/src/Api/Dockerfile`, contexte de build `./server`.
 ## Local
 
 ```bash
-cp infra/.env.local.example infra/.env.local   # renseigner OpenAiApiKey et NtfyToken
+cp infra/.env.local.example infra/.env.local
 docker compose -f infra/compose.local.yml up -d --build --wait
 docker compose -f infra/compose.local.yml logs -f
 docker compose -f infra/compose.local.yml down -v   # arrêt + purge des données
@@ -38,8 +38,12 @@ La stack vit dans le dépôt d'infrastructure `checquy`, aux côtés des autres 
 `stacks/apps/enbref/docker-compose.yml`. Elle suit les conventions maison — réseau `appNet`,
 `read_only: true`, `cap_drop: ALL`, `no-new-privileges`, logging json-file 10m/3, PUID/PGID du NAS.
 
-Secrets injectés en variables d'environnement par la stack : `OpenAiApiKey`, `GithubToken`,
-`NtfyToken`, `EnBrefConnectionString`.
+Secrets injectés en variables d'environnement par la stack : `GithubToken`.
+Les clés du LLM et de ntfy seront définies à l'étape 2 de la reconstruction du serveur.
+
+**Le serveur ne doit jamais être publié vers internet** : aucune règle de pare-feu, de reverse proxy
+ni de redirection de port vers EnBref. C'est l'infrastructure, et elle seule, qui garantit que le
+back-office (sans authentification) reste sur le réseau local (ADR-006).
 
 Mise à jour : relever le tag CalVer dans le compose, puis redéployer la stack.
 

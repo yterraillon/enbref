@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "EnBref — dev",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

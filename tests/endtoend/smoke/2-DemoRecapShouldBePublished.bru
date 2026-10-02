@@ -1,0 +1,38 @@
+meta {
+  name: DemoRecapShouldBePublished
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{cdnUrl}}/demo.json?nocache={{$timestamp}}
+  body: none
+  auth: none
+}
+
+headers {
+  User-Agent: Mozilla/5.0 (compatible; EnBref/1.0)
+}
+
+script:pre-request {
+  // Laisse à GitHub Pages le temps de déployer l'artefact publié.
+  await new Promise(resolve => setTimeout(resolve, 90000));
+}
+
+assert {
+  res.status: eq 200
+  res.body: isJson
+}
+
+tests {
+  test("demo.json should have been published by this run", function () {
+    const lastModified = new Date(res.headers["last-modified"]);
+    const requestedAt = new Date(bru.getVar("generationRequestedAt"));
+    expect(lastModified.getTime()).to.be.at.least(requestedAt.getTime() - 60000);
+  });
+}
+
+docs {
+  Vérifie sur le CDN que demo.json a été republié après la génération de l'étape 1.
+  La forme du récap sera vérifiée quand le contrat sera implémenté (étape 2).
+}

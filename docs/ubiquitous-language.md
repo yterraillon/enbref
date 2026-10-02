@@ -53,6 +53,10 @@ ne change qu'à la demande. Deux usages : la revue App Store, qui exige un conte
 présentable, et la vérification qu'un client sait charger et afficher un récap sans dépendre de la
 génération.
 
+Le smoke test Bruno (`tests/endtoend/smoke/`) le régénère et le republie pour vérifier la chaîne
+jusqu'au CDN : c'est une demande explicite, et **chaque lancement doit être suivi d'une relecture
+manuelle** de `demo.json`.
+
 **À ne pas dire** : récap de test (c'est une autre notion, voir ci-dessous), fixture, mock.
 
 ### Récap de test
@@ -65,7 +69,7 @@ publié** : il n'écrase ni `latest.json` ni `demo.json`.
 **À ne pas dire** : récap de démo, récap jetable, dry run.
 
 ### Type de récap
-**Code** : `RecapKind` (`Daily`, `Demo`, `Test`) · **UI** : « Type de récap »
+**Code** : `RecapType` (`Daily`, `Demo`, `Test`) · **UI** : « Type de récap »
 
 Ce que produit une génération : récap du jour, de démo ou de test. Le type détermine le LLM employé
 et l'artefact de publication ; un type `Test` n'est jamais publié, quoi que demande l'appelant.
@@ -264,33 +268,28 @@ budget de lecture est la contrainte, le plafond de caractères n'en est que la t
 confiance dans le rapport ; **en revanche, du code ou de la doc neufs qui les reproduisent sont
 bloquants**.
 
-### Écarts du serveur importé
+### Écarts des artefacts publiés
 
-Le code de `server/` vient du dépôt `myfanwy` et est antérieur à ce glossaire. Il sera repris lors du
-refactor en vertical slices. Le tableau ci-dessous fait foi ; `server/src/Modules/EnBref/README.md`
-en donne la version locale.
+Le serveur importé de `myfanwy` a été supprimé et le serveur est reconstruit de zéro (ADR-005). Ses
+écarts de code ont disparu avec lui ; restent ceux des artefacts qu'il a publiés, et que lisent les
+clients et le test Bruno quotidien.
 
-| Code actuel | Terme canonique | Nature de l'écart |
+| Publié aujourd'hui | Terme canonique | Nature de l'écart |
 |---|---|---|
-| `Section` (titre + texte libre) | `Category` portant des `Brief` | Le modèle n'a ni catégories fixes ni brèves : le LLM invente ses sections et y met du texte en vrac. C'est l'écart structurant. |
-| `Recap.Title` | — | Un récap n'a pas de titre au glossaire. Le champ existe (« Récap du … ») et est asserté par le test Bruno. |
-| `RecapSectionMetric` | relève de `History` | Seules des métriques sont conservées en base, pas les récaps passés : l'historique n'existe pas encore. |
 | `latest-recap.json` | `latest.json` | Chemin publié réel : `cdn/en-bref/data/latest-recap.json`. |
-| `OpenAiAgents`, `OpenAiApiKey` | API Claude | Deux agents OpenAI enchaînés (rédaction puis mise en forme JSON). |
-| `IObjectStorageWriter` / `Reader` | `Publication` | La publication passe par une abstraction de stockage d'objets héritée d'Azure Blob. |
-| `AzureBlobStorage/` | — | Code mort, commenté dans la DI, `EnBrefConnectionString` inutilisé. |
-| `GetNewsTitles()` | `Collecte` | Deux flux en dur dans le handler (20 Minutes, Le Figaro), pas en configuration. |
+| `sections` (titre + texte libre) | `Category` portant des `Brief` | Pas de catégories fixes ni de brèves dans l'artefact publié. |
+| `title` (« Récap du … ») | — | Un récap n'a pas de titre au glossaire ; le champ est asserté par le test Bruno quotidien. |
 
-Absents du code à ce stade : le **récap de démo**, le **récap de test**, le **back-office**, les
-**crédits** et la **disponibilité**.
+Absents du code à ce stade : la collecte, la génération, la publication, l'historique, les
+**crédits** et la **disponibilité**. Le back-office n'est qu'une coquille.
 
 ### Autres écarts
 
 - **`.claude/CLAUDE.md` § Project Overview** — employait « récap de test » pour désigner le **récap
   de démo** (§ 2) ; corrigé. « Le récap du jour non caché » désigne un affichage back-office qui
   reste à nommer si on l'implémente.
-- **Heure de génération** — 17 h, conformément au cron `0 0 17 * * ?` du job. Le tableau d'écarts de
-  `server/src/Modules/EnBref/README.md` mentionnait 16 h comme cible ; c'est 17 h qui fait foi.
+- **Heure de génération** — 17 h, conformément au cron `0 0 17 * * ?` du job. L'ancien serveur mentionnait
+  16 h comme cible ; c'est 17 h qui fait foi.
 - **Accentuation et nombre des catégories** — le glossaire retient « Économie » (accentué) et
   « Technologies » (pluriel) comme libellés d'interface. À confirmer au premier rendu réel dans
   l'application.

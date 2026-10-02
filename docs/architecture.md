@@ -117,9 +117,9 @@ nom de domaine. Il ne consomme pas le récap.
 
 Le code importé de `myfanwy` a été supprimé (`387318c`) ; le serveur est **reconstruit de zéro**
 selon les règles ci-dessus (ADR-005). Le seul point d'entrée existant est
-`POST /api/recaps/generations` (`Features/GenerateRecap`), dont le handler est encore vide.
+`POST /api/recaps/generations` (`Features/GenerateRecap`), protégé par clé (ADR-006), dont le
+handler est encore vide.
 
 ## 7. Ce qui reste à décider
 
-- L'emplacement des tests (`tests/endtoend/` pour Bruno, et les tests serveur ?).
 - La stratégie de reprise de l'historique — aujourd'hui aucune, la base démarre vide.

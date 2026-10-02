@@ -1,0 +1,31 @@
+meta {
+  name: GenerateDemoRecap
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/recaps/generations
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "Demo",
+    "publish": true
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  bru.setVar("generationRequestedAt", new Date().toISOString());
+}
+
+docs {
+  Génère et publie un récap de démo. ⚠️ Écrase demo.json sur le CDN, jamais latest.json.
+  Exige un serveur dont le GithubToken est renseigné.
+}

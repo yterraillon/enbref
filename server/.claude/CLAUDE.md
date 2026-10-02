@@ -25,7 +25,7 @@ l'endpoint, le job Quartz ou le back-office.
 **Pas de modules.** Le domaine est l'application.
 
 **`Api` → `Infrastructure`, jamais l'inverse.** Pas de projet `Application` (ADR-005, qui remplace
-en partie ADR-002).
+ADR-002).
 
 Chaque slice expose `Add<Slice>()` pour la DI et `Map<Slice>()` pour la route, appelés depuis
 `Program.cs`.
@@ -48,14 +48,15 @@ avant. `Shared/` n'est pas un endroit où ranger les choses par défaut.
 
 ## Ce qui est interdit
 
-- **Un endpoint qui déclenche une génération sans intention explicite.** `GET /api/enbref/en-bref`
-  fait exactement ça aujourd'hui : anonyme, il consomme des crédits LLM et écrase le récap publié à
-  chaque appel. C'est le défaut à corriger en premier, et à ne jamais reproduire. Une génération se
-  déclenche par le job planifié ou par une action explicite du back-office.
+- **Un endpoint qui déclenche une génération sans intention explicite.** Une génération consomme
+  des crédits et peut écraser le récap publié. Elle se déclenche par le job planifié, par une action
+  explicite du back-office, ou par `POST /api/recaps/generations` (ADR-006).
+  Aucun autre déclencheur, et jamais en `GET`.
 - **Publier depuis un chemin de test.** Le récap de test ne doit écraser ni `latest.json` ni
   `demo.json`. Cette garantie se tient dans le code, pas dans la configuration.
 - **Exposer le serveur.** Aucun endpoint n'est destiné à un client externe. Le back-office est
-  LAN-only et c'est ce qui lui permet de se passer d'authentification.
+  LAN-only, garanti par l'infrastructure et non par le code (ADR-006) : c'est ce qui lui permet de
+  se passer d'authentification.
 - **Ajouter une dépendance sans ADR.** `Directory.Packages.props` centralise les versions ; une
   entrée nouvelle est une décision.
 - **Mettre une règle métier dans un contrôleur, un job Quartz ou un composant Blazor.** Ces trois-là
@@ -71,8 +72,8 @@ Un changement de contrat exige un ADR et une vérification côté app — jamais
 serveur.
 
 La forme cible est fixée au § 7 du glossaire : sept catégories ordonnées, une à deux brèves par
-catégorie, un titre et un résumé de 200 caractères maximum par brève. **Le code actuel publie autre
-chose** (`Recap.Title` + `Section { Title, Text }` libres) : c'est l'écart principal du refactor.
+catégorie, un titre et un résumé de 200 caractères maximum par brève. **L'artefact publié
+aujourd'hui (par l'ancien serveur) a une autre forme** : voir le § 9 du glossaire.
 
 ## Nommage C#
 
@@ -87,14 +88,11 @@ chose** (`Recap.Title` + `Section { Title, Text }` libres) : c'est l'écart prin
 ## Configuration et secrets
 
 Clés lues dans le Secret Manager en développement et dans les variables d'environnement en
-`Production`. ⚠️ Héritées du serveur supprimé : à redéfinir au fil des étapes de la reconstruction.
+`Production`. Les clés du LLM et de ntfy seront définies à l'étape 2 de la reconstruction.
 
 | Clé | Rôle |
 |---|---|
-| `OpenAiApiKey` | génération — à remplacer par l'API Claude (ADR-003) |
 | `GithubToken` | publication — **vide en local**, sinon on écrase la production |
-| `NtfyToken` | notification d'échec |
-| `EnBrefConnectionString` | Azure Blob, hérité et inutilisé — à supprimer |
 
 Aucun secret en clair dans le dépôt, y compris dans `.agentsworkspace/`.
 
@@ -108,9 +106,9 @@ renseigné publie en production.
 
 ## Tests
 
-Bruno, à la racine (`tests/endtoend/`), vérifie le **récap publié** et non le serveur — conséquence
-d'ADR-001. Il n'y a pas encore de tests unitaires serveur et leur emplacement n'est pas tranché :
-ne pas créer d'arborescence de tests sans en avoir parlé.
+- **Unitaires** : TUnit, `server/tests/Api.Tests/` (ADR-007), un dossier par slice, à l'image de
+  `src/Api`. Lancés par `dotnet test --solution enbref.server.slnx` et par `build-server.yml`.
+- **End-to-end** : Bruno, à la racine (`tests/endtoend/`) — voir `tests/README.md`.
 
 ## Build
 
