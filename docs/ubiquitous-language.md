@@ -64,6 +64,14 @@ publié** : il n'écrase ni `latest.json` ni `demo.json`.
 
 **À ne pas dire** : récap de démo, récap jetable, dry run.
 
+### Type de récap
+**Code** : `RecapKind` (`Daily`, `Demo`, `Test`) · **UI** : « Type de récap »
+
+Ce que produit une génération : récap du jour, de démo ou de test. Le type détermine le LLM employé
+et l'artefact de publication ; un type `Test` n'est jamais publié, quoi que demande l'appelant.
+
+**À ne pas dire** : mode, variante, variant, flavor, cible, target.
+
 ---
 
 ## 3. Le contenu d'un récap

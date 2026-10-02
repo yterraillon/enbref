@@ -4,39 +4,31 @@ Conventions du serveur .NET 10 d'EnBref. Le vocabulaire métier vient de
 `docs/ubiquitous-language.md`, qui fait autorité ; ce fichier ne couvre que l'architecture et le
 style.
 
-## ⚠️ Lire ceci avant de copier quoi que ce soit
+## Architecture — vertical slices, deux projets
 
-Le code de `server/` a été importé du dépôt `myfanwy` **en conservant sa structure d'origine**. Il
-ne suit **aucune** des règles ci-dessous. Il sera refactoré ; d'ici là :
-
-- **ne pas prendre le code existant comme modèle** — il est la référence de ce qu'on quitte ;
-- **ne pas étendre les structures héritées** : pas de nouveau module, pas de nouveau
-  `IRequestHandler`, pas de nouvelle classe dans `BuildingBlocks/` « pour rester cohérent » ;
-- du code neuf conforme à côté de code ancien non conforme est **normal** pendant la transition.
-
-## Architecture cible — vertical slices
-
-Une fonctionnalité = **un dossier**, contenant tout ce dont elle a besoin : son endpoint, son
-handler, ses modèles de requête et de réponse, sa validation.
+Le serveur est reconstruit de zéro (le code importé de `myfanwy` a été supprimé). Une
+fonctionnalité = **un dossier**, contenant son endpoint, son handler, ses modèles.
 
 ```
 src/
-├── Features/
-│   ├── GenerateDailyRecap/
-│   ├── PublishRecap/
-│   └── …
-└── Shared/          uniquement ce qui sert à plusieurs slices
+├── Api/                     racine de composition : Program.cs, DI
+│   ├── Features/
+│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler, Command
+│   ├── Shared/              uniquement ce qui sert à plusieurs slices
+│   └── BackOffice/          Blazor Server, servi sous /back-office
+└── Infrastructure/          implémentations des dépendances sortantes
 ```
 
 **Pas de MediatR.** Les handlers sont des classes ordinaires, injectées et appelées directement par
-l'endpoint. `ISender`, `IRequest<T>` et `IRequestHandler<,>` sont à retirer, pas à réutiliser.
+l'endpoint, le job Quartz ou le back-office.
 
-**Pas de modules.** Le domaine est l'application. `Modules/EnBref/` disparaîtra.
+**Pas de modules.** Le domaine est l'application.
 
-**Pas de découpage `Application` / `Infrastructure` par projet.** Une abstraction vit auprès du code
-qui la consomme, pas dans un projet dédié.
+**`Api` → `Infrastructure`, jamais l'inverse.** Pas de projet `Application` (ADR-005, qui remplace
+en partie ADR-002).
 
-Ces trois points sont actés par l'ADR-002 — les contourner demande un nouvel ADR.
+Chaque slice expose `Add<Slice>()` pour la DI et `Map<Slice>()` pour la route, appelés depuis
+`Program.cs`.
 
 ### Quand une abstraction est justifiée
 
@@ -94,8 +86,8 @@ chose** (`Recap.Title` + `Section { Title, Text }` libres) : c'est l'écart prin
 
 ## Configuration et secrets
 
-Quatre clés, lues dans le Secret Manager en développement et dans les variables d'environnement
-en `Production` (bascule dans `Api/App/DependencyInjection.cs`) :
+Clés lues dans le Secret Manager en développement et dans les variables d'environnement en
+`Production`. ⚠️ Héritées du serveur supprimé : à redéfinir au fil des étapes de la reconstruction.
 
 | Clé | Rôle |
 |---|---|
@@ -127,6 +119,5 @@ dotnet build server/enbref.server.slnx
 dotnet run --project server/src/Api
 ```
 
-SDK .NET 10 (`global.json`), versions de paquets centralisées
-(`Directory.Packages.props`). `Directory.Build.props` porte une suppression d'audit NuGet pour
-AutoMapper : la justification est dans le fichier, la relire avant d'y toucher.
+SDK .NET 10 (`global.json`), versions de paquets centralisées (`Directory.Packages.props`),
+warnings traités en erreurs (`Directory.Build.props`).

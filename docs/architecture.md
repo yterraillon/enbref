@@ -62,8 +62,9 @@ bout sans naviguer entre quatre projets.
 - **Pas de modules.** `Modules/EnBref/` n'a de sens que dans un hôte qui en héberge plusieurs, ce
   qui était le cas de `myfanwy`. Ici le domaine *est* EnBref : un module unique n'est qu'un niveau
   d'indirection.
-- **Pas de découpage Application / Infrastructure par projet.** Les abstractions vivent auprès du
-  code qui les consomme.
+- **Deux projets** (ADR-005) : `Api`, racine de composition qui porte les slices et le back-office,
+  et `Infrastructure`, qui porte les implémentations des dépendances sortantes. `Api` référence
+  `Infrastructure`, jamais l'inverse.
 
 ### Ce qui reste partagé
 
@@ -114,26 +115,11 @@ nom de domaine. Il ne consomme pas le récap.
 
 ## 6. État réel du serveur
 
-Le code importé (`765bc3f`) vient de `myfanwy` et **ne suit aucune des règles ci-dessus**. Il sera
-refactoré ; d'ici là, il ne sert pas de modèle.
-
-| Cible | Réel |
-|---|---|
-| Vertical slices | `Modules/EnBref/{Application,Infrastructure}` |
-| Pas de MediatR | MediatR 12, `ISender`, `IRequestHandler` |
-| API Claude | Deux agents OpenAI enchaînés (rédaction, puis mise en forme JSON) |
-| 7 catégories fixes, brèves | `Section { Title, Text }` libre, inventée par le LLM |
-| Flux configurés | Deux URLs en dur dans `GenerateDailyRecap.Handler` |
-| Historique des récaps | Seules des métriques de sections en LiteDB |
-
-À quoi s'ajoutent : le code Azure Blob mort mais conservé, et
-`GET /api/enbref/en-bref` qui **déclenche une génération complète** — un appel non authentifié qui
-consomme des crédits LLM et écrase le récap publié. C'est le point à traiter en premier.
-
-Les écarts de vocabulaire sont recensés au § 9 du glossaire.
+Le code importé de `myfanwy` a été supprimé (`387318c`) ; le serveur est **reconstruit de zéro**
+selon les règles ci-dessus (ADR-005). Le seul point d'entrée existant est
+`POST /api/recaps/generations` (`Features/GenerateRecap`), dont le handler est encore vide.
 
 ## 7. Ce qui reste à décider
 
 - L'emplacement des tests (`tests/endtoend/` pour Bruno, et les tests serveur ?).
-- La forme du back-office : projet Blazor séparé, ou servi par l'API ?
 - La stratégie de reprise de l'historique — aujourd'hui aucune, la base démarre vide.

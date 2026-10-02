@@ -52,7 +52,7 @@ sont tous sortants.
 
 ## ADR-002 — Vertical slices sans MediatR et sans modules
 
-**Date :** 2026-09-28 · **Statut :** Accepté
+**Date :** 2026-09-28 · **Statut :** Remplacé en partie par ADR-005 (découpage en projets)
 
 ### Contexte
 
@@ -133,3 +133,41 @@ Versionnement **CalVer** `YYYY.MM.DD.NN`, posé en tag Docker, en label OCI
 - Plusieurs publications le même jour sont distinguées par `NN`.
 - **Coût :** la version ne dit rien de la compatibilité. C'est acceptable tant que le serveur n'a
   qu'un consommateur — lui-même — mais cesserait de l'être si l'API devenait publique.
+
+---
+
+## ADR-005 — Reconstruction du serveur : projets Api et Infrastructure
+
+**Date :** 2026-10-02 · **Statut :** Accepté · **Remplace en partie :** ADR-002
+
+### Contexte
+
+Refactorer le serveur importé s'est révélé plus coûteux que le réécrire : il a été supprimé et le
+serveur est reconstruit de zéro. ADR-002 interdisait tout découpage en projets. Or le serveur a
+deux natures distinctes : des cas d'usage (une génération, le reste en lecture pour audit) et des
+adaptateurs vers l'extérieur (flux RSS, LLM, GitHub, LiteDB, ntfy).
+
+### Décision
+
+Deux projets :
+
+- **`Api`** — racine de composition (`Program.cs`, DI), vertical slices sous `Features/<Slice>/`
+  (endpoint, handler, modèles), et back-office Blazor Server sous `BackOffice/`, servi par le même
+  hôte à `/back-office`.
+- **`Infrastructure`** — implémentations des dépendances sortantes. `Api` référence
+  `Infrastructure`, jamais l'inverse.
+
+Le reste d'ADR-002 tient : **pas de MediatR**, **pas de modules**, handlers appelés directement.
+
+Dépendances ajoutées : `Microsoft.AspNetCore.OpenApi` (document OpenAPI natif) et
+`Swashbuckle.AspNetCore.SwaggerUI` (interface `/swagger`, attendue par la stack locale).
+
+### Conséquences
+
+- La frontière de projet empêche mécaniquement un adaptateur d'appeler un handler.
+- Le back-office appelle les handlers en mémoire : un seul processus et un seul conteneur, sans
+  appel HTTP interne. La question ouverte « Blazor séparé ou servi par l'API » est tranchée.
+- **Coût :** les contrats (lecteur de flux, agent de génération, publieur) doivent vivre là où
+  `Infrastructure` peut les implémenter, ce qui les éloigne des slices qui les consomment.
+- **Coût :** le back-office partage le cycle de vie de l'API. Un plantage Blazor emporte le job
+  planifié avec lui.
