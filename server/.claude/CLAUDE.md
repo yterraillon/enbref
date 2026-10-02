@@ -4,39 +4,33 @@ Conventions du serveur .NET 10 d'EnBref. Le vocabulaire métier vient de
 `docs/ubiquitous-language.md`, qui fait autorité ; ce fichier ne couvre que l'architecture et le
 style.
 
-## ⚠️ Lire ceci avant de copier quoi que ce soit
+## Architecture — vertical slices, deux projets
 
-Le code de `server/` a été importé du dépôt `myfanwy` **en conservant sa structure d'origine**. Il
-ne suit **aucune** des règles ci-dessous. Il sera refactoré ; d'ici là :
-
-- **ne pas prendre le code existant comme modèle** — il est la référence de ce qu'on quitte ;
-- **ne pas étendre les structures héritées** : pas de nouveau module, pas de nouveau
-  `IRequestHandler`, pas de nouvelle classe dans `BuildingBlocks/` « pour rester cohérent » ;
-- du code neuf conforme à côté de code ancien non conforme est **normal** pendant la transition.
-
-## Architecture cible — vertical slices
-
-Une fonctionnalité = **un dossier**, contenant tout ce dont elle a besoin : son endpoint, son
-handler, ses modèles de requête et de réponse, sa validation.
+Le serveur est reconstruit de zéro (le code importé de `myfanwy` a été supprimé). Une
+fonctionnalité = **un dossier**, contenant son endpoint, son handler, ses modèles.
 
 ```
 src/
-├── Features/
-│   ├── GenerateDailyRecap/
-│   ├── PublishRecap/
-│   └── …
-└── Shared/          uniquement ce qui sert à plusieurs slices
+├── Api/                     racine de composition : Program.cs, DI
+│   ├── Features/
+│   │   ├── CollectHeadlines/ collecte, appelée en mémoire (génération, back-office)
+│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler, Command
+│   ├── Shared/              uniquement ce qui sert à plusieurs slices
+│   └── BackOffice/          Blazor Server, servi sous /back-office
+└── Infrastructure/          implémentations des dépendances sortantes
+    └── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
 ```
 
 **Pas de MediatR.** Les handlers sont des classes ordinaires, injectées et appelées directement par
-l'endpoint. `ISender`, `IRequest<T>` et `IRequestHandler<,>` sont à retirer, pas à réutiliser.
+l'endpoint, le job Quartz ou le back-office.
 
-**Pas de modules.** Le domaine est l'application. `Modules/EnBref/` disparaîtra.
+**Pas de modules.** Le domaine est l'application.
 
-**Pas de découpage `Application` / `Infrastructure` par projet.** Une abstraction vit auprès du code
-qui la consomme, pas dans un projet dédié.
+**`Api` → `Infrastructure`, jamais l'inverse.** Pas de projet `Application` (ADR-005, qui remplace
+ADR-002).
 
-Ces trois points sont actés par l'ADR-002 — les contourner demande un nouvel ADR.
+Chaque slice expose `Add<Slice>()` pour la DI et `Map<Slice>()` pour la route, appelés depuis
+`Program.cs`.
 
 ### Quand une abstraction est justifiée
 
@@ -56,14 +50,15 @@ avant. `Shared/` n'est pas un endroit où ranger les choses par défaut.
 
 ## Ce qui est interdit
 
-- **Un endpoint qui déclenche une génération sans intention explicite.** `GET /api/enbref/en-bref`
-  fait exactement ça aujourd'hui : anonyme, il consomme des crédits LLM et écrase le récap publié à
-  chaque appel. C'est le défaut à corriger en premier, et à ne jamais reproduire. Une génération se
-  déclenche par le job planifié ou par une action explicite du back-office.
+- **Un endpoint qui déclenche une génération sans intention explicite.** Une génération consomme
+  des crédits et peut écraser le récap publié. Elle se déclenche par le job planifié, par une action
+  explicite du back-office, ou par `POST /api/recaps/generations` (ADR-006).
+  Aucun autre déclencheur, et jamais en `GET`.
 - **Publier depuis un chemin de test.** Le récap de test ne doit écraser ni `latest.json` ni
   `demo.json`. Cette garantie se tient dans le code, pas dans la configuration.
 - **Exposer le serveur.** Aucun endpoint n'est destiné à un client externe. Le back-office est
-  LAN-only et c'est ce qui lui permet de se passer d'authentification.
+  LAN-only, garanti par l'infrastructure et non par le code (ADR-006) : c'est ce qui lui permet de
+  se passer d'authentification.
 - **Ajouter une dépendance sans ADR.** `Directory.Packages.props` centralise les versions ; une
   entrée nouvelle est une décision.
 - **Mettre une règle métier dans un contrôleur, un job Quartz ou un composant Blazor.** Ces trois-là
@@ -79,8 +74,8 @@ Un changement de contrat exige un ADR et une vérification côté app — jamais
 serveur.
 
 La forme cible est fixée au § 7 du glossaire : sept catégories ordonnées, une à deux brèves par
-catégorie, un titre et un résumé de 200 caractères maximum par brève. **Le code actuel publie autre
-chose** (`Recap.Title` + `Section { Title, Text }` libres) : c'est l'écart principal du refactor.
+catégorie, un titre et un résumé de 200 caractères maximum par brève. **L'artefact publié
+aujourd'hui (par l'ancien serveur) a une autre forme** : voir le § 9 du glossaire.
 
 ## Nommage C#
 
@@ -94,15 +89,12 @@ chose** (`Recap.Title` + `Section { Title, Text }` libres) : c'est l'écart prin
 
 ## Configuration et secrets
 
-Quatre clés, lues dans le Secret Manager en développement et dans les variables d'environnement
-en `Production` (bascule dans `Api/App/DependencyInjection.cs`) :
+Clés lues dans le Secret Manager en développement et dans les variables d'environnement en
+`Production`. Les clés du LLM et de ntfy seront définies à l'étape 2 de la reconstruction.
 
 | Clé | Rôle |
 |---|---|
-| `OpenAiApiKey` | génération — à remplacer par l'API Claude (ADR-003) |
 | `GithubToken` | publication — **vide en local**, sinon on écrase la production |
-| `NtfyToken` | notification d'échec |
-| `EnBrefConnectionString` | Azure Blob, hérité et inutilisé — à supprimer |
 
 Aucun secret en clair dans le dépôt, y compris dans `.agentsworkspace/`.
 
@@ -116,9 +108,9 @@ renseigné publie en production.
 
 ## Tests
 
-Bruno, à la racine (`tests/endtoend/`), vérifie le **récap publié** et non le serveur — conséquence
-d'ADR-001. Il n'y a pas encore de tests unitaires serveur et leur emplacement n'est pas tranché :
-ne pas créer d'arborescence de tests sans en avoir parlé.
+- **Unitaires** : TUnit, `server/tests/Api.Tests/` et `server/tests/Infrastructure.Tests/`,
+  à l'image de `src/`. Pas de bibliothèque de mock : des stubs écrits à la main. Lancés par `dotnet test --solution enbref.server.slnx` et par `build-server.yml`.
+- **End-to-end** : Bruno, à la racine (`tests/endtoend/`) — voir `tests/README.md`.
 
 ## Build
 
@@ -127,6 +119,5 @@ dotnet build server/enbref.server.slnx
 dotnet run --project server/src/Api
 ```
 
-SDK .NET 10 (`global.json`), versions de paquets centralisées
-(`Directory.Packages.props`). `Directory.Build.props` porte une suppression d'audit NuGet pour
-AutoMapper : la justification est dans le fichier, la relire avant d'y toucher.
+SDK .NET 10 (`global.json`), versions de paquets centralisées (`Directory.Packages.props`),
+warnings traités en erreurs (`Directory.Build.props`).

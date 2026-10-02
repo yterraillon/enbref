@@ -42,17 +42,18 @@ Il fait autorité sur le vocabulaire : un terme canonique par notion, sa corresp
 Le glossaire couvre le **métier uniquement**. Les termes d'architecture restent dans
 `docs/architecture.md` et les `CLAUDE.md` de `server/`, `ios/` et `web/`.
 
-⚠️ **Le serveur importé est massivement non conforme au glossaire** (`Section` au lieu de catégories
-et de brèves, OpenAI, `latest-recap.json`…). Les écarts sont recensés au § 9. Ils seront traités au
-refactor ; **du code neuf qui les reproduit est une régression**.
+⚠️ **L'artefact publié aujourd'hui par l'ancien serveur n'est pas conforme au glossaire**
+(`latest-recap.json`, `sections`…). Les écarts sont recensés au § 9 ; **du code neuf qui les
+reproduit est une régression**.
 
 ## Architecture
 
 `docs/architecture.md` décrit la cible, `docs/architecture-decision-record.md` les décisions actées.
 
-L'essentiel pour écrire du code serveur : **vertical slices, sans MediatR, sans modules** (ADR-002).
-Une fonctionnalité = un dossier contenant son endpoint, son handler et ses modèles. Le code actuel
-fait l'inverse — il sera refactoré.
+L'essentiel pour écrire du code serveur : **vertical slices, sans MediatR, sans modules**, dans deux
+projets `Api` (slices, DI, back-office) et `Infrastructure` (dépendances sortantes) — ADR-005. Une
+fonctionnalité = un dossier contenant son endpoint, son handler et ses modèles. Le serveur est
+reconstruit de zéro sur ce modèle.
 
 Un ADR accepté ne se contourne pas. Un changement structurant se documente par un ADR ajouté **dans
 le même changement que le code**, et on n'édite jamais un ADR existant : on en ajoute un nouveau.
@@ -87,7 +88,7 @@ Le récap de démo et le récap de test n'existent pas encore dans le code.
 ## Stack Docker locale
 
 ```bash
-cp infra/.env.local.example infra/.env.local   # renseigner OpenAiApiKey et NtfyToken
+cp infra/.env.local.example infra/.env.local
 docker compose -f infra/compose.local.yml up -d --build --wait
 docker compose -f infra/compose.local.yml logs -f
 docker compose -f infra/compose.local.yml down -v   # arrêt + purge des données
@@ -99,13 +100,10 @@ lecture des secrets en variables d'environnement.
 
 ## Testing
 
-Bruno pour les tests end-to-end (`tests/endtoend/`). Ils vérifient le **récap publié sur le CDN**,
-pas le serveur — c'est la conséquence directe d'ADR-001.
-
-L'emplacement des tests serveur n'est pas tranché.
-
-⚠️ Les workflows `build-server.yml`, `release-server.yml` et `e2e-recap-publication.yml` sont
-référencés par `docs/deployment.md` et par `server/enbref.server.slnx` mais **n'existent pas encore**.
+- **Unitaires** : TUnit, `server/tests/` (`Api.Tests`, `Infrastructure.Tests`).
+- **End-to-end** : Bruno, `tests/endtoend/` — `enbref/` vérifie chaque jour le récap publié sur le
+  CDN, `dev/` appelle le déclencheur de génération local, `smoke/` génère un récap de démo et vérifie
+  sa publication. Voir `tests/README.md`.
 
 ## General Behavior
 

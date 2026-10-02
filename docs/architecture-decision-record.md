@@ -52,7 +52,7 @@ sont tous sortants.
 
 ## ADR-002 — Vertical slices sans MediatR et sans modules
 
-**Date :** 2026-09-28 · **Statut :** Accepté
+**Date :** 2026-09-28 · **Statut :** Remplacé par ADR-005
 
 ### Contexte
 
@@ -133,3 +133,79 @@ Versionnement **CalVer** `YYYY.MM.DD.NN`, posé en tag Docker, en label OCI
 - Plusieurs publications le même jour sont distinguées par `NN`.
 - **Coût :** la version ne dit rien de la compatibilité. C'est acceptable tant que le serveur n'a
   qu'un consommateur — lui-même — mais cesserait de l'être si l'API devenait publique.
+
+---
+
+## ADR-005 — Reconstruction du serveur : projets Api et Infrastructure
+
+**Date :** 2026-10-02 · **Statut :** Accepté · **Remplace :** ADR-002 (dont il reconduit tout, sauf l'interdiction du découpage en projets)
+
+### Contexte
+
+Refactorer le serveur importé s'est révélé plus coûteux que le réécrire : il a été supprimé et le
+serveur est reconstruit de zéro. ADR-002 interdisait tout découpage en projets. Or le serveur a
+deux natures distinctes : des cas d'usage (une génération, le reste en lecture pour audit) et des
+adaptateurs vers l'extérieur (flux RSS, LLM, GitHub, LiteDB, ntfy).
+
+### Décision
+
+Deux projets :
+
+- **`Api`** — racine de composition (`Program.cs`, DI), vertical slices sous `Features/<Slice>/`
+  (endpoint, handler, modèles), et back-office Blazor Server sous `BackOffice/`, servi par le même
+  hôte à `/back-office`.
+- **`Infrastructure`** — implémentations des dépendances sortantes. `Api` référence
+  `Infrastructure`, jamais l'inverse.
+
+Le reste d'ADR-002 tient : **pas de MediatR**, **pas de modules**, handlers appelés directement.
+
+Dépendances ajoutées : `Microsoft.AspNetCore.OpenApi` (document OpenAPI natif) et
+`Swashbuckle.AspNetCore.SwaggerUI` (interface `/swagger`, attendue par la stack locale).
+
+### Conséquences
+
+- La frontière de projet empêche mécaniquement un adaptateur d'appeler un handler.
+- Le back-office appelle les handlers en mémoire : un seul processus et un seul conteneur, sans
+  appel HTTP interne. La question ouverte « Blazor séparé ou servi par l'API » est tranchée.
+- **Coût :** les contrats (lecteur de flux, agent de génération, publieur) doivent vivre là où
+  `Infrastructure` peut les implémenter, ce qui les éloigne des slices qui les consomment.
+- **Coût :** le back-office partage le cycle de vie de l'API. Un plantage Blazor emporte le job
+  planifié avec lui.
+
+---
+
+## ADR-006 — Déclencheur HTTP de génération protégé par clé
+
+**Date :** 2026-10-02 · **Statut :** Accepté
+
+### Contexte
+
+Une génération ne devait partir que du job planifié ou du back-office. Or il faut aussi pouvoir la
+déclencher à la main, depuis Bruno en développement ou pour un smoke test, sans attendre le
+back-office. Le serveur n'est pas exposé sur internet (ADR-001), mais un endpoint anonyme reste
+appelable par tout poste du réseau local, Swagger compris, et une génération consomme des crédits
+et peut écraser le récap publié.
+
+### Décision
+
+`POST /api/recaps/generations` est un **troisième déclencheur** autorisé. Il exige le header
+`X-Api-Key`, comparé en temps constant à la clé de configuration `GenerationApiKey`. Si la clé n'est
+pas configurée, le endpoint est **fermé** (401) et non ouvert. Le job et le back-office appellent le
+handler en mémoire, sans passer par la clé.
+
+Le caractère LAN-only du serveur et du back-office est garanti par l'**infrastructure** (aucun port
+publié vers internet sur le NAS), pas par le code : le back-office reste sans authentification.
+
+### Conséquences
+
+- Un appel accidentel ou anonyme sur le réseau local ne déclenche rien.
+- Bruno peut tester la chaîne de génération sans back-office. Le smoke test s'en sert pour générer
+  et publier un récap de démo, seul moyen de vérifier une publication réelle sans toucher
+  `latest.json`.
+- **Coût :** chaque smoke test remplace le récap de démo, qui doit ensuite être relu à la main.
+- **Coût :** un secret de plus à gérer, en local comme en production.
+- **Coût :** la clé ne distingue pas les types de récap. Qui la détient peut publier un récap du
+  jour ; seul le handler peut restreindre ce qu'un appel a le droit de faire.
+- **Coût :** si une règle réseau ouvrait le port par erreur, le back-office serait public. Rien dans
+  le code ne l'empêche.
+

@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "EnBref — smoke",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

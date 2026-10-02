@@ -1,0 +1,97 @@
+name: Serveur — pull request
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'server/**'
+      - 'tests/endtoend/**'
+      - '.github/workflows/pr-server.yml'
+
+concurrency:
+  group: pr-server-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Build et tests unitaires
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: server/global.json
+
+      - name: Restore
+        run: dotnet restore enbref.server.slnx
+        working-directory: ./server
+
+      - name: Build
+        run: dotnet build enbref.server.slnx --no-restore --configuration Release
+        working-directory: ./server
+
+      - name: Tests unitaires
+        run: dotnet test --solution enbref.server.slnx --no-build --configuration Release
+        working-directory: ./server
+
+      - name: Rapport des tests unitaires
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-tests-report
+          path: server/**/TestResults/**
+          if-no-files-found: ignore
+
+  smoke:
+    name: Smoke test sur l'image Docker
+    needs: test
+    runs-on: ubuntu-latest
+    # TODO étape 2 (publication) : retirer. Tant que le handler ne publie pas demo.json, la
+    # vérification sur le CDN échoue ; le job tourne mais ne bloque pas le merge.
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build de l'image
+        run: |
+          VERSION="pr-${{ github.event.pull_request.number }}-${GITHUB_SHA::7}"
+          docker build ./server -f ./server/src/Api/Dockerfile --build-arg APP_VERSION="$VERSION" -t enbref-server:smoke
+
+      - name: Démarrage du conteneur
+        env:
+          GithubToken: ${{ secrets.ENBREF_GITHUB_TOKEN }}
+        run: |
+          docker run -d --name enbref-smoke -p 8080:8080 \
+            -e ASPNETCORE_ENVIRONMENT=Production -e TZ=Europe/Paris -e GithubToken \
+            enbref-server:smoke
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8080/health && exit 0
+            sleep 2
+          done
+          echo "Le serveur ne répond pas sur /health" >&2
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Smoke test Bruno
+        working-directory: tests/endtoend/smoke
+        run: |
+          mkdir -p reports
+          npx -y @usebruno/cli run --env ci --reporter-html ./reports/report.html
+
+      - name: Rapport du smoke test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: tests/endtoend/smoke/reports
+
+      - name: Logs du conteneur
+        if: failure()
+        run: docker logs enbref-smoke

@@ -1,48 +1,36 @@
-using Api.App;
-using Application.Logging;
-using Infrastructure;
+using System.Text.Json.Serialization;
+using EnBref.Api.BackOffice;
+using EnBref.Api.Features.CollectHeadlines;
+using EnBref.Api.Features.GenerateRecap;
+using EnBref.Api.Shared;
+using EnBref.Infrastructure;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-Console.WriteLine("Starting EnBref server...");
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddOpenApi();
+builder.Services.AddHealthChecks();
+builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    // remove the Server header for security reasons
-    options.AddServerHeader = false;
-});
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddControllers();
-
-builder.Services.ConfigureLogging();
-builder.Services.AddInfrastructureBlocks(isUsingDocker: !builder.Environment.IsDevelopment());
-
-Console.WriteLine("Loading modules...");
-builder.Services.LoadModules(isDevelopment: !builder.Environment.IsDevelopment());
-builder.Services.LoadConfigurations(builder);
+builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddCollectHeadlines();
+builder.Services.AddGenerateRecap();
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.MapOpenApi();
+app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "EnBref"));
+app.UseAntiforgery();
+app.MapStaticAssets();
 
-if (!app.Environment.IsDevelopment())
+app.MapHealthChecks("/health", new HealthCheckOptions
 {
-    app.UseHsts();
-}
+    ResponseWriter = (context, report) => context.Response.WriteAsJsonAsync(
+        new { status = report.Status.ToString(), version = ServerVersion.Current }),
+});
+app.MapGenerateRecap();
+app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
-app.UseHttpsRedirection();
-
-// https://github.com/andrewlock/NetEscapades.AspNetCore.SecurityHeaders
-app.UseSecurityHeaders();
-
-app.MapControllers();
-
-// Sonde du healthcheck Docker : volontairement sans dépendance (pas de LiteDB, pas
-// d'appel sortant), elle ne répond que « le process sert des requêtes ».
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-
-Console.WriteLine("Application started.");
 app.Run();

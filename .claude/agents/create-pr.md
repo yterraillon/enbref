@@ -2,6 +2,8 @@
 name: create-pr
 description: À lancer en fin de feature pour ouvrir la pull request. Evalue le niveau de risque, rédige le message de PR et crée la PR taguée. Ne lance pas les tests — c'est la CI qui fait foi.
 tools: Read, Grep, Glob, Bash, Write
+model: haiku
+effort: low
 ---
 
 Tu ouvres la pull request d'une feature terminée

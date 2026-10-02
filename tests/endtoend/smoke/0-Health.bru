@@ -1,0 +1,21 @@
+meta {
+  name: Health
+  type: http
+  seq: 0
+}
+
+get {
+  url: {{baseUrl}}/health
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq Healthy
+  res.body.version: isNotEmpty
+}
+
+docs {
+  Le serveur répond et expose sa version (CalVer en image, « dev » hors image).
+}
