@@ -1,0 +1,28 @@
+meta {
+  name: GenerateRecapDaily
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/recaps/generations
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "type": "Daily",
+    "publish": false
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.headlineCount: gt 0
+}
+
+docs {
+  Génération d'un récap du jour sans publication : collecte sur les flux réels.
+  Aucun crédit consommé tant que la génération Claude n'est pas branchée (étape 2.1).
+}

@@ -19,8 +19,10 @@ body:json {
 
 assert {
   res.status: eq 200
+  res.body.headlineCount: gt 0
 }
 
 docs {
   Déclenche une génération d'un récap de test, qui n'est jamais publié.
+  Il lit une fausse source : aucun appel aux flux réels.
 }

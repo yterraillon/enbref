@@ -13,10 +13,12 @@ fonctionnalité = **un dossier**, contenant son endpoint, son handler, ses modè
 src/
 ├── Api/                     racine de composition : Program.cs, DI
 │   ├── Features/
+│   │   ├── CollectHeadlines/ collecte, appelée en mémoire (génération, back-office)
 │   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler, Command
 │   ├── Shared/              uniquement ce qui sert à plusieurs slices
 │   └── BackOffice/          Blazor Server, servi sous /back-office
 └── Infrastructure/          implémentations des dépendances sortantes
+    └── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
 ```
 
 **Pas de MediatR.** Les handlers sont des classes ordinaires, injectées et appelées directement par
@@ -106,8 +108,8 @@ renseigné publie en production.
 
 ## Tests
 
-- **Unitaires** : TUnit, `server/tests/Api.Tests/` (ADR-007), un dossier par slice, à l'image de
-  `src/Api`. Lancés par `dotnet test --solution enbref.server.slnx` et par `build-server.yml`.
+- **Unitaires** : TUnit, `server/tests/Api.Tests/` et `server/tests/Infrastructure.Tests/`,
+  à l'image de `src/`. Pas de bibliothèque de mock : des stubs écrits à la main. Lancés par `dotnet test --solution enbref.server.slnx` et par `build-server.yml`.
 - **End-to-end** : Bruno, à la racine (`tests/endtoend/`) — voir `tests/README.md`.
 
 ## Build

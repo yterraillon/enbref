@@ -209,29 +209,3 @@ publié vers internet sur le NAS), pas par le code : le back-office reste sans a
 - **Coût :** si une règle réseau ouvrait le port par erreur, le back-office serait public. Rien dans
   le code ne l'empêche.
 
----
-
-## ADR-007 — Tests unitaires du serveur avec TUnit, sous `server/tests/`
-
-**Date :** 2026-10-02 · **Statut :** Accepté
-
-### Contexte
-
-L'emplacement des tests serveur n'était pas tranché. Le handler de génération enchaîne plusieurs
-étapes (collecte, génération, publication), avec une règle qui ne doit jamais casser : un récap de
-test n'est jamais publié.
-
-### Décision
-
-Tests unitaires avec **TUnit**, dans `server/tests/Api.Tests/`, référencé par la solution et lancé
-par `build-server.yml`. Le projet reflète l'arborescence de `src/Api` (un dossier par slice).
-`tests/` à la racine reste réservé aux tests end-to-end Bruno.
-
-### Conséquences
-
-- Les tests vivent à côté du code qu'ils couvrent, et la CI serveur les exécute.
-- TUnit s'appuie sur Microsoft.Testing.Platform : `global.json` le déclare comme runner de
-  `dotnet test`.
-- **Coût :** TUnit est plus jeune que xUnit ou NUnit, donc avec un écosystème et un outillage plus
-  réduits.
-- **Coût :** deux emplacements de tests, unitaires dans `server/tests/` et end-to-end dans `tests/`.

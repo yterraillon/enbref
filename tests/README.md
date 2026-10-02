@@ -1,7 +1,7 @@
 # tests
 
 Tests end-to-end [Bruno](https://www.usebruno.com/). Les tests unitaires du serveur vivent dans
-`server/tests/` (TUnit, ADR-007).
+`server/tests/` (TUnit).
 
 ## Collections
 

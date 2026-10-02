@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using EnBref.Api.BackOffice;
+using EnBref.Api.Features.CollectHeadlines;
 using EnBref.Api.Features.GenerateRecap;
 using EnBref.Infrastructure;
 
@@ -12,6 +13,7 @@ builder.Services.AddHealthChecks();
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddCollectHeadlines();
 builder.Services.AddGenerateRecap();
 
 var app = builder.Build();

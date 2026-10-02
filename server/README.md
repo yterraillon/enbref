@@ -9,7 +9,7 @@ dans `docs/architecture-decision-record.md` (ADR-005 à 007).
 ```
 src/Api/              racine de composition, slices (Features/), back-office Blazor (BackOffice/)
 src/Infrastructure/   implémentations des dépendances sortantes
-tests/Api.Tests/      tests unitaires TUnit
+tests/                tests unitaires TUnit (Api.Tests, Infrastructure.Tests)
 ```
 
 ## Lancer
@@ -24,5 +24,6 @@ dotnet run --project src/Api          # http://localhost:5080/swagger
 |---|---|
 | `POST /api/recaps/generations` | déclenche une génération |
 | `/back-office` | back-office (réseau local uniquement) |
+| `/back-office/feeds` | titres collectés et état de chaque flux |
 | `/health` | sonde |
 | `/swagger` | documentation OpenAPI |

@@ -1,0 +1,46 @@
+@page "/back-office/feeds"
+@using EnBref.Api.Features.CollectHeadlines
+@inject CollectHeadlinesHandler CollectHeadlines
+
+<PageTitle>EnBref — Flux</PageTitle>
+
+<h1>Flux</h1>
+
+<button @onclick="CollectAsync" disabled="@isCollecting">@(isCollecting ? "Collecte…" : "Recharger")</button>
+
+@if (collection is not null)
+{
+    <p>@collection.Headlines.Count titres collectés.</p>
+
+    @foreach (var feed in collection.Feeds)
+    {
+        <section>
+            <h2>@feed.Feed.Source — @feed.Status (@feed.Headlines.Count)</h2>
+            <p><a href="@feed.Feed.Url" target="_blank">@feed.Feed.Url</a></p>
+            @if (feed.Error is not null)
+            {
+                <p><strong>@feed.Error</strong></p>
+            }
+            <ol>
+                @foreach (var headline in feed.Headlines)
+                {
+                    <li>@headline</li>
+                }
+            </ol>
+        </section>
+    }
+}
+
+@code {
+    private CollectionResult? collection;
+    private bool isCollecting;
+
+    protected override Task OnInitializedAsync() => CollectAsync();
+
+    private async Task CollectAsync()
+    {
+        isCollecting = true;
+        collection = await CollectHeadlines.HandleAsync(useFakeReader: false, CancellationToken.None);
+        isCollecting = false;
+    }
+}

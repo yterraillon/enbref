@@ -156,6 +156,16 @@ le LLM, qui produit des brèves.
 
 **À ne pas dire** : titre (employé seul — réservé au titre d'une brève, § 3), article, item, entrée.
 
+### État du flux
+**Code** : `FeedStatus` (`Available`, `Unreachable`, `Invalid`, `Empty`) · **UI** : « État du flux »
+
+Ce que la collecte constate sur un flux : exploitable (au moins un titre collecté), injoignable,
+illisible (ni RSS ni Atom), ou vide. Un flux qui n'est pas exploitable n'interrompt pas la collecte
+des autres.
+
+**À ne pas dire** : statut, santé, health. « Disponibilité » reste réservé aux LLM (§ 6) ; seule
+exception assumée, la valeur `Available` (« exploitable »), choisie parce qu'elle se lit d'elle-même.
+
 ---
 
 ## 5. Les traitements
@@ -167,6 +177,15 @@ L'étape qui interroge les flux et en extrait les titres collectés du jour. Ell
 génération et ne fait appel à aucun LLM.
 
 **À ne pas dire** : scraping, ingestion, fetch, crawl, agrégation.
+
+### Résultat de collecte
+**Code** : `CollectionResult` · **UI** : « Résultat de collecte »
+
+L'état et les titres collectés de chaque flux interrogé, et la liste de tous les titres, **doublons
+compris** : une dépêche reprise par plusieurs sources signale un sujet fréquent. La collecte aboutit
+dès qu'au moins un titre est collecté ; sinon, la génération échoue.
+
+**À ne pas dire** : rapport, fetch result, résultat RSS.
 
 ### Génération
 **Code** : `Generation` · **UI** : « Génération »
@@ -280,7 +299,7 @@ clients et le test Bruno quotidien.
 | `sections` (titre + texte libre) | `Category` portant des `Brief` | Pas de catégories fixes ni de brèves dans l'artefact publié. |
 | `title` (« Récap du … ») | — | Un récap n'a pas de titre au glossaire ; le champ est asserté par le test Bruno quotidien. |
 
-Absents du code à ce stade : la collecte, la génération, la publication, l'historique, les
+Absents du code à ce stade : la génération, la publication, l'historique, les
 **crédits** et la **disponibilité**. Le back-office n'est qu'une coquille.
 
 ### Autres écarts

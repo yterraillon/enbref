@@ -15,12 +15,28 @@ public static class GenerateRecapEndpoint
                 GenerateRecapHandler handler,
                 CancellationToken cancellationToken) =>
             {
-                await handler.HandleAsync(command, cancellationToken);
-                return Results.Ok();
+                var result = await handler.HandleAsync(command, cancellationToken);
+                var response = GenerateRecapResponse.From(result);
+
+                return result.IsSuccessful
+                    ? Results.Ok(response)
+                    : Results.Problem("Aucun titre collecté.", statusCode: StatusCodes.Status502BadGateway,
+                        extensions: new Dictionary<string, object?> { ["feeds"] = response.Feeds });
             })
             .WithName("GenerateRecap")
             .WithTags("Génération");
 
         return endpoints;
     }
+}
+
+public sealed record GenerateRecapResponse(int HeadlineCount, IReadOnlyList<GenerateRecapResponse.FeedSummary> Feeds)
+{
+    public sealed record FeedSummary(string Source, string Status, int HeadlineCount, string? Error);
+
+    public static GenerateRecapResponse From(GenerateRecapResult result) => new(
+        result.Collection.Headlines.Count,
+        result.Collection.Feeds
+            .Select(feed => new FeedSummary(feed.Feed.Source, feed.Status.ToString(), feed.Headlines.Count, feed.Error))
+            .ToList());
 }
