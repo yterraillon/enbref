@@ -6,14 +6,9 @@ on:
     paths:
       - 'server/**'
       - '.github/workflows/build-server.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'server/**'
-      - '.github/workflows/build-server.yml'
 
 concurrency:
-  group: build-server-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  group: build-server-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -24,19 +19,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.0.x'
+          global-json-file: server/global.json
 
-      - name: Restore dependencies
+      - name: Restore
         run: dotnet restore enbref.server.slnx
         working-directory: ./server
 
       - name: Build
         run: dotnet build enbref.server.slnx --no-restore --configuration Release
-        working-directory: ./server
-
-      - name: Test
-        run: dotnet test --solution enbref.server.slnx --no-build --configuration Release
         working-directory: ./server

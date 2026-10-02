@@ -8,18 +8,20 @@ EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
+# Pas « VERSION » : MSBuild lirait la variable d'environnement comme $(Version).
+ARG APP_VERSION=dev
 WORKDIR /src
 COPY ./Directory.Packages.props ./Directory.Build.props ./global.json ./
 COPY ./src/Api/Api.csproj ./src/Api/
 COPY ./src/Infrastructure/Infrastructure.csproj ./src/Infrastructure/
 RUN dotnet restore ./src/Api/Api.csproj
 COPY . .
-RUN dotnet publish ./src/Api/Api.csproj -c $BUILD_CONFIGURATION -o /app/publish --no-restore /p:UseAppHost=false
+RUN dotnet publish ./src/Api/Api.csproj -c $BUILD_CONFIGURATION -o /app/publish --no-restore /p:UseAppHost=false /p:InformationalVersion=$APP_VERSION
 
 FROM base AS final
 WORKDIR /app
-ARG VERSION=unknown
-LABEL version=$VERSION
-LABEL org.opencontainers.image.version=$VERSION
+ARG APP_VERSION=dev
+LABEL version=$APP_VERSION
+LABEL org.opencontainers.image.version=$APP_VERSION
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "Api.dll"]

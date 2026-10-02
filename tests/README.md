@@ -9,7 +9,7 @@ Tests end-to-end [Bruno](https://www.usebruno.com/). Les tests unitaires du serv
 |---|---|---|
 | `endtoend/enbref/` | CDN de production | `LatestRecapShouldBePublishedToday` : le récap du jour publié est du JSON valide, daté du jour |
 | `endtoend/dev/` | serveur local | le déclencheur de génération répond 200 |
-| `endtoend/smoke/` | serveur + CDN | génère et publie un **récap de démo**, puis vérifie que `demo.json` a été republié |
+| `endtoend/smoke/` | serveur + CDN | `/health` répond avec la version, puis génère et publie un **récap de démo** et vérifie que `demo.json` a été republié |
 
 `enbref/` ne nécessite ni serveur ni secret.
 
@@ -28,6 +28,6 @@ cd tests/endtoend/enbref && npx @usebruno/cli run
 
 ## Planification
 
-`enbref/` tourne chaque jour à 16h30 UTC, après la génération de 17 h (heure de Paris), via
-`.github/workflows/e2e-recap-publication.yml`. Échec ⇒ alerte Discord. `dev/` et `smoke/` visent le
-serveur, qui n'est pas exposé : ils ne tournent pas en CI.
+`smoke/` tourne à chaque pull request, contre l'image Docker démarrée dans le runner
+(`.github/workflows/pr-server.yml`, environnement `ci`). `enbref/` et `dev/` se lancent à la main :
+le test quotidien du récap publié a été retiré.

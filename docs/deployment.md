@@ -10,11 +10,26 @@ preview.
 | Hôte | poste de dev | NAS Synology `therook`, derrière SWAG |
 | Données | `infra/data/` | `/volume1/docker/enbref/data` |
 
-## Image
+## CI/CD
 
-`.github/workflows/release-server.yml` construit et pousse l'image à chaque push sur `main` touchant
-`server/**` (ou à la demande). Version **CalVer** `YYYY.MM.DD.NN`, posée en tag Docker, en label OCI
-`org.opencontainers.image.version` et en release GitHub.
+| Workflow | Déclencheur | Fait |
+|---|---|---|
+| `build-server.yml` | push sur une branche ≠ `main` (`server/**`) | restore + build Release |
+| `pr-server.yml` | PR vers `main` | build, tests unitaires TUnit, puis smoke test Bruno (`tests/endtoend/smoke/`) sur l'image Docker démarrée dans le runner |
+| `release-server.yml` | push sur `main` (merge), ou à la demande | image poussée sur GHCR (`:<CalVer>` et `:latest`), tag et release GitHub |
+
+Version **CalVer** `YYYY.MM.DD.NN` (ADR-004), calculée sur les tags du jour, passée au build par
+`--build-arg APP_VERSION` : elle devient l'`InformationalVersion` de l'assembly et le label OCI
+`org.opencontainers.image.version`. Le serveur l'expose sur `/health` et `/back-office/info` ; hors
+image, elle vaut `dev`. L'argument ne s'appelle pas `VERSION` : MSBuild lirait la variable
+d'environnement comme `$(Version)` et la restauration échouerait.
+
+Le smoke test de PR génère et publie le **récap de démo** : il lit le secret `ENBREF_GITHUB_TOKEN`
+et `demo.json` doit être relu après chaque PR. Tant que la publication n'est pas implémentée, le job
+est en `continue-on-error`.
+
+Le test quotidien du récap publié (`e2e-recap-publication.yml`) a été retiré ; la collection
+`tests/endtoend/enbref/` reste lançable à la main.
 
 Dockerfile : `server/src/Api/Dockerfile`, contexte de build `./server`.
 
@@ -54,8 +69,8 @@ Le récap n'est pas servi par le serveur : il est **publié** sur
 lisent là. Le serveur n'a donc pas besoin d'être joignable depuis l'extérieur pour que le récap soit
 consultable.
 
-Le test Bruno `tests/endtoend/enbref/` vérifie chaque jour à 16h30 UTC que l'artefact publié est bien
-daté du jour (`.github/workflows/e2e-recap-publication.yml`, alerte Discord en cas d'échec).
+Le test Bruno `tests/endtoend/enbref/` vérifie que l'artefact publié est bien daté du jour. Il n'est
+plus planifié (voir § CI/CD).
 
 ## Migration depuis myfanwy
 
