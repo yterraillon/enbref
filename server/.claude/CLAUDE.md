@@ -39,8 +39,8 @@ Trois dépendances sortantes doivent rester derrière un contrat, chacune pour u
 | Dépendance | Pourquoi l'abstraire |
 |---|---|
 | Flux RSS | les sources changent, le format aussi (RSS, Atom) |
-| LLM | Claude en production, modèles GitHub pour le récap de test : deux implémentations |
-| Dépôt de publication | la destination peut changer, et le récap de test ne doit **pas** publier |
+| LLM | Claude seul fournisseur (ADR-007) ; stubs en test, couche d'inférence à venir |
+| Dépôt de publication | la destination peut changer, et le récap de test ne publie que sur `test.json` |
 
 **LiteDB n'en fait pas partie.** L'historique est un détail interne ; un `IRepository<T>` posé « au
 cas où » ajoute de l'indirection sans bénéfice.
@@ -54,8 +54,9 @@ avant. `Shared/` n'est pas un endroit où ranger les choses par défaut.
   des crédits et peut écraser le récap publié. Elle se déclenche par le job planifié, par une action
   explicite du back-office, ou par `POST /api/recaps/generations` (ADR-006).
   Aucun autre déclencheur, et jamais en `GET`.
-- **Publier depuis un chemin de test.** Le récap de test ne doit écraser ni `latest.json` ni
-  `demo.json`. Cette garantie se tient dans le code, pas dans la configuration.
+- **Publier un récap de test ailleurs que sur `test.json`.** Il ne doit écraser ni `latest.json` ni
+  `demo.json` (ADR-007). Cette garantie se tient dans le code, pas dans la configuration.
+- **Appeler le LLM pour un récap de test.** Il ne consomme pas de crédits.
 - **Exposer le serveur.** Aucun endpoint n'est destiné à un client externe. Le back-office est
   LAN-only, garanti par l'infrastructure et non par le code (ADR-006) : c'est ce qui lui permet de
   se passer d'authentification.

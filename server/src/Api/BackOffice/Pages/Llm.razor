@@ -14,7 +14,7 @@
 </dl>
 
 @* Pas d'appel au chargement : seul le clic consomme des crédits. *@
-<button @onclick="SendAsync" disabled="@isSending">@(isSending ? "Envoi…" : $"Envoyer « {Prompt} »")</button>
+<button @onclick="SendAsync" disabled="@isSending">@(isSending ? "Envoi…" : "Envoyer")</button>
 
 @if (answer is not null)
 {
@@ -27,8 +27,6 @@
 }
 
 @code {
-    private const string Prompt = "Hello, Claude";
-
     private string? answer;
     private string? error;
     private bool isSending;
@@ -40,7 +38,7 @@
         error = null;
         try
         {
-            answer = await LlmClient.SendAsync(Prompt, CancellationToken.None);
+            answer = await LlmClient.SendAsync(CancellationToken.None);
         }
         catch (Exception exception)
         {

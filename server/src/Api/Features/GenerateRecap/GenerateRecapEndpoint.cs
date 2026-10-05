@@ -30,7 +30,10 @@ public static class GenerateRecapEndpoint
     }
 }
 
-public sealed record GenerateRecapResponse(int HeadlineCount, IReadOnlyList<GenerateRecapResponse.FeedSummary> Feeds)
+public sealed record GenerateRecapResponse(
+    int HeadlineCount,
+    IReadOnlyList<GenerateRecapResponse.FeedSummary> Feeds,
+    string? LlmResponse)
 {
     public sealed record FeedSummary(string Source, string Status, int HeadlineCount, string? Error);
 
@@ -38,5 +41,6 @@ public sealed record GenerateRecapResponse(int HeadlineCount, IReadOnlyList<Gene
         result.Collection.Headlines.Count,
         result.Collection.Feeds
             .Select(feed => new FeedSummary(feed.Feed.Source, feed.Status.ToString(), feed.Headlines.Count, feed.Error))
-            .ToList());
+            .ToList(),
+        result.LlmResponse);
 }

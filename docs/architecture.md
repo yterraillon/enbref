@@ -80,8 +80,8 @@ raison précise :
 | Dépendance | Abstraction | Pourquoi |
 |---|---|---|
 | Flux RSS | lecteur de flux | Les sources changent ; le format aussi (RSS, Atom). |
-| LLM | agent de génération | On génère avec Claude en production et les modèles GitHub pour le récap de test. Deux implémentations, un contrat. |
-| Dépôt de publication | publieur | La destination peut changer ; surtout, on doit pouvoir *ne pas* publier (récap de test). |
+| LLM | agent de génération | Claude est le seul fournisseur (ADR-007) ; le contrat permet les stubs de test et la future couche d'inférence. Le récap de test ne l'appelle pas. |
+| Dépôt de publication | publieur | La destination peut changer ; surtout, le récap de test ne doit atteindre que `test.json`. |
 
 LiteDB n'est pas dans cette liste : l'historique est un détail interne, et une abstraction de
 persistance posée « au cas où » coûte plus qu'elle ne rapporte.

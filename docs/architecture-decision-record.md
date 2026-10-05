@@ -85,7 +85,7 @@ publication, LiteDB, notification.
 
 ## ADR-003 — Génération par API Claude, récap de test par les modèles GitHub
 
-**Date :** 2026-09-28 · **Statut :** Accepté
+**Date :** 2026-09-28 · **Statut :** Remplacé par ADR-007
 
 ### Contexte
 
@@ -209,3 +209,38 @@ publié vers internet sur le NAS), pas par le code : le back-office reste sans a
 - **Coût :** si une règle réseau ouvrait le port par erreur, le back-office serait public. Rien dans
   le code ne l'empêche.
 
+---
+
+## ADR-007 — Récap de test sans LLM, publié sur un artefact dédié
+
+**Date :** 2026-10-05 · **Statut :** Accepté · **Remplace :** ADR-003 (dont il reconduit la génération par l'API Claude en un seul appel)
+
+### Contexte
+
+ADR-003 confiait le récap de test aux modèles GitHub, gratuits, pour vérifier la chaîne en CI sans
+consommer de crédits. Ces modèles n'existent plus : il ne reste qu'un fournisseur, l'API Claude.
+
+Il faut pourtant toujours pouvoir vérifier la chaîne sans dépenser de crédits ni toucher au récap
+lu par les clients. Or ce que seul un test de bout en bout prouve, c'est la **publication** :
+l'écriture sur le dépôt de publication et la mise à disposition sur le CDN.
+
+### Décision
+
+- Le **récap du jour** et le **récap de démo** sont générés par l'**API Claude**, en un seul appel
+  produisant directement la structure attendue (repris d'ADR-003).
+- Le **récap de test** lit la fausse source, **n'appelle aucun LLM**, et est **publié** sur un
+  artefact dédié, `test.json`. Il n'écrase jamais `latest.json` ni `demo.json`.
+- L'artefact découle du type de récap, dans le code : aucun paramètre d'appel ni aucune
+  configuration ne permet à un récap de test d'atteindre `latest.json` ou `demo.json`.
+
+### Conséquences
+
+- La CI et le back-office vérifient une publication réelle sans crédits ni relecture manuelle.
+- Le smoke test n'a plus besoin de remplacer le récap de démo pour prouver une publication.
+- **Coût :** plus rien ne vérifie l'appel au LLM sans consommer de crédits. La génération réelle
+  n'est éprouvée que par le récap de démo et le job quotidien.
+- **Coût :** un troisième artefact sur le CDN, lisible publiquement, au contenu sans intérêt.
+- **Coût :** le récap de test emprunte désormais le chemin de publication ; la garantie qu'il
+  n'atteint ni `latest.json` ni `demo.json` repose entièrement sur le code et doit être testée.
+- L'abstraction LLM n'a plus deux implémentations à servir ; elle reste justifiée par les stubs de
+  test et par la couche d'inférence prévue.

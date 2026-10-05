@@ -81,9 +81,9 @@ Trois notions distinctes — ne pas les confondre, le glossaire les sépare expl
 |---|---|---|---|
 | **Récap du jour** | `latest.json` | Job quotidien 17 h, API Claude | Ce que lisent les clients |
 | **Récap de démo** | `demo.json` | À la demande, puis figé et relu | Revue App Store, test de chargement |
-| **Récap de test** | *non publié* | À la demande, modèles GitHub | CI, vérification de la chaîne |
+| **Récap de test** | `test.json` | À la demande, fausse source, sans LLM | CI, vérification de la publication |
 
-Le récap de démo et le récap de test n'existent pas encore dans le code.
+Le rôle de chacun est détaillé dans `docs/recaps.md`. Aucun n'est encore publié par le code.
 
 ## Stack Docker locale
 

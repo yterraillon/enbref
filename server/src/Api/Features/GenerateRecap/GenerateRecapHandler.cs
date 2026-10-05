@@ -1,11 +1,15 @@
 using EnBref.Api.Features.CollectHeadlines;
 using EnBref.Api.Shared;
+using EnBref.Infrastructure.Llm;
 
 namespace EnBref.Api.Features.GenerateRecap;
 
-public sealed class GenerateRecapHandler(CollectHeadlinesHandler collectHeadlines, ILogger<GenerateRecapHandler> logger)
+public sealed class GenerateRecapHandler(
+    CollectHeadlinesHandler collectHeadlines,
+    ILlmClient llmClient,
+    ILogger<GenerateRecapHandler> logger)
 {
-    // Étapes suivantes : génération, puis publication — jamais pour un RecapType.Test.
+    // Étape suivante : publication, sur l'artefact du type — test.json seulement pour un RecapType.Test.
     public async Task<GenerateRecapResult> HandleAsync(GenerateRecapCommand command, CancellationToken cancellationToken)
     {
         // Le récap de test lit une fausse source : il ne dépend pas des flux réels.
@@ -15,7 +19,7 @@ public sealed class GenerateRecapHandler(CollectHeadlinesHandler collectHeadline
         {
             // TODO ntfy : génération impossible.
             logger.LogError("Génération {Type} impossible : aucun titre collecté.", command.Type);
-            return new GenerateRecapResult(collection);
+            return new GenerateRecapResult(collection, LlmResponse: null);
         }
 
         if (collection.IsDegraded)
@@ -25,6 +29,13 @@ public sealed class GenerateRecapHandler(CollectHeadlinesHandler collectHeadline
                 string.Join(", ", collection.Feeds.Select(feed => $"{feed.Feed.Source} {feed.Status}")));
         }
 
-        return new GenerateRecapResult(collection);
+        // Le récap de test ne consomme pas de crédits : il n'appelle pas le LLM.
+        if (command.Type == RecapType.Test)
+        {
+            return new GenerateRecapResult(collection, LlmResponse: null);
+        }
+
+        var llmResponse = await llmClient.SendAsync(cancellationToken);
+        return new GenerateRecapResult(collection, llmResponse);
     }
 }

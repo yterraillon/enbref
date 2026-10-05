@@ -60,19 +60,20 @@ manuelle** de `demo.json`.
 **À ne pas dire** : récap de test (c'est une autre notion, voir ci-dessous), fixture, mock.
 
 ### Récap de test
-**Code** : `TestRecap` · **UI** : « Récap de test »
+**Code** : `TestRecap` · **UI** : « Récap de test » · **Artefact** : `test.json`
 
-Un récap généré à la demande pour vérifier que la chaîne de génération fonctionne — depuis la CI ou
-depuis le back-office. Il emploie les modèles GitHub plutôt que l'API Claude, et **n'est jamais
-publié** : il n'écrase ni `latest.json` ni `demo.json`.
+Un récap produit à la demande à partir de la fausse source, **sans appel au LLM**, et publié sur
+`test.json` — depuis la CI ou depuis le back-office. Il vérifie la chaîne de publication de bout en
+bout sans consommer de crédits. Il n'écrase **jamais** `latest.json` ni `demo.json` (ADR-007).
 
 **À ne pas dire** : récap de démo, récap jetable, dry run.
 
 ### Type de récap
 **Code** : `RecapType` (`Daily`, `Demo`, `Test`) · **UI** : « Type de récap »
 
-Ce que produit une génération : récap du jour, de démo ou de test. Le type détermine le LLM employé
-et l'artefact de publication ; un type `Test` n'est jamais publié, quoi que demande l'appelant.
+Ce que produit une génération : récap du jour, de démo ou de test. Le type détermine si le LLM est
+appelé et l'artefact de publication ; un type `Test` n'appelle jamais le LLM et ne publie que sur
+`test.json`, quoi que demande l'appelant.
 
 **À ne pas dire** : mode, variante, variant, flavor, cible, target.
 
@@ -198,8 +199,8 @@ collecte puis génération à 17 h ; en cas d'échec, trois tentatives avant ale
 ### Publication
 **Code** : `Publication` · **UI** : « Publication »
 
-L'étape qui dépose un récap sur le dépôt de publication, sous `latest.json` ou `demo.json`, via
-l'API GitHub. Un récap de test n'est jamais publié.
+L'étape qui dépose un récap sur le dépôt de publication, sous `latest.json`, `demo.json` ou
+`test.json` selon le type de récap, via l'API GitHub.
 
 **À ne pas dire** : déploiement, push, upload, export.
 
