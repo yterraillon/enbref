@@ -1,0 +1,54 @@
+@page "/back-office/llm"
+@using EnBref.Infrastructure.Llm
+@using Microsoft.Extensions.Options
+@inject ILlmClient LlmClient
+@inject IOptions<AnthropicOptions> AnthropicOptions
+
+<PageTitle>EnBref — LLM</PageTitle>
+
+<h1>LLM</h1>
+
+<dl>
+    <dt>Modèle</dt>
+    <dd>@AnthropicOptions.Value.Model</dd>
+</dl>
+
+@* Pas d'appel au chargement : seul le clic consomme des crédits. *@
+<button @onclick="SendAsync" disabled="@isSending">@(isSending ? "Envoi…" : $"Envoyer « {Prompt} »")</button>
+
+@if (answer is not null)
+{
+    <p>@answer</p>
+}
+
+@if (error is not null)
+{
+    <p><strong>@error</strong></p>
+}
+
+@code {
+    private const string Prompt = "Hello, Claude";
+
+    private string? answer;
+    private string? error;
+    private bool isSending;
+
+    private async Task SendAsync()
+    {
+        isSending = true;
+        answer = null;
+        error = null;
+        try
+        {
+            answer = await LlmClient.SendAsync(Prompt, CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+        }
+        finally
+        {
+            isSending = false;
+        }
+    }
+}

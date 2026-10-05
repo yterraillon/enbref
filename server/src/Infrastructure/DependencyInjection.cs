@@ -1,6 +1,9 @@
+using Anthropic;
 using EnBref.Infrastructure.Collection;
+using EnBref.Infrastructure.Llm;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace EnBref.Infrastructure;
 
@@ -17,6 +20,13 @@ public static class DependencyInjection
         });
         services.AddKeyedTransient<IFeedReader>(FeedReaderKeys.Rss, (provider, _) => provider.GetRequiredService<RssFeedReader>());
         services.AddKeyedSingleton<IFeedReader, FakeFeedReader>(FeedReaderKeys.Fake);
+
+        services.Configure<AnthropicOptions>(configuration.GetSection(AnthropicOptions.SectionName));
+        services.AddSingleton(provider => new AnthropicClient
+        {
+            ApiKey = provider.GetRequiredService<IOptions<AnthropicOptions>>().Value.ApiKey,
+        });
+        services.AddSingleton<ILlmClient, AnthropicLlmClient>();
 
         return services;
     }

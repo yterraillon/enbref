@@ -7,5 +7,7 @@
     <PackageVersion Include="System.ServiceModel.Syndication" Version="10.0.12" />
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.12" />
     <PackageVersion Include="TUnit" Version="1.72.10" />
+    <!-- ADR-003 -->
+    <PackageVersion Include="Anthropic" Version="12.53.0" />
   </ItemGroup>
 </Project>

@@ -90,11 +90,13 @@ aujourd'hui (par l'ancien serveur) a une autre forme** : voir le § 9 du glossai
 ## Configuration et secrets
 
 Clés lues dans le Secret Manager en développement et dans les variables d'environnement en
-`Production`. Les clés du LLM et de ntfy seront définies à l'étape 2 de la reconstruction.
+`Production`. La clé ntfy sera définie à l'étape 2 de la reconstruction.
 
 | Clé | Rôle |
 |---|---|
 | `GithubToken` | publication — **vide en local**, sinon on écrase la production |
+| `Anthropic:ApiKey` | API Claude — user secrets en local, `Anthropic__ApiKey` en production |
+| `Anthropic:Model` | modèle Claude — `claude-haiku-4-5` en Development, `claude-opus-5-5` sinon |
 
 Aucun secret en clair dans le dépôt, y compris dans `.agentsworkspace/`.
 
