@@ -1,12 +1,12 @@
 using EnBref.Api.Features.CollectHeadlines;
 using EnBref.Api.Shared;
-using EnBref.Infrastructure.Llm;
 
 namespace EnBref.Api.Features.GenerateRecap;
 
 public sealed class GenerateRecapHandler(
     CollectHeadlinesHandler collectHeadlines,
-    ILlmClient llmClient,
+    GenerationAgent generationAgent,
+    TimeProvider timeProvider,
     ILogger<GenerateRecapHandler> logger)
 {
     // Étape suivante : publication, sur l'artefact du type — test.json seulement pour un RecapType.Test.
@@ -19,7 +19,7 @@ public sealed class GenerateRecapHandler(
         {
             // TODO ntfy : génération impossible.
             logger.LogError("Génération {Type} impossible : aucun titre collecté.", command.Type);
-            return new GenerateRecapResult(collection, LlmResponse: null);
+            return new GenerateRecapResult(collection, Recap: null, Error: null);
         }
 
         if (collection.IsDegraded)
@@ -32,10 +32,17 @@ public sealed class GenerateRecapHandler(
         // Le récap de test ne consomme pas de crédits : il n'appelle pas le LLM.
         if (command.Type == RecapType.Test)
         {
-            return new GenerateRecapResult(collection, LlmResponse: null);
+            return new GenerateRecapResult(collection, Recap: null, Error: null);
         }
 
-        var llmResponse = await llmClient.SendAsync(cancellationToken);
-        return new GenerateRecapResult(collection, llmResponse);
+        var date = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
+        var generation = await generationAgent.WriteAsync(new GenerationContext(date, collection.Headlines), cancellationToken);
+        if (!generation.IsSuccessful)
+        {
+            // TODO ntfy : génération impossible.
+            logger.LogError("Génération {Type} impossible : {Error}", command.Type, generation.Error);
+        }
+
+        return new GenerateRecapResult(collection, generation.Recap, generation.Error);
     }
 }

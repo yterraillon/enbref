@@ -9,14 +9,16 @@ Tests end-to-end [Bruno](https://www.usebruno.com/). Les tests unitaires du serv
 |---|---|---|
 | `endtoend/enbref/` | CDN de production | `LatestRecapShouldBePublishedToday` : le récap du jour publié est du JSON valide, daté du jour |
 | `endtoend/dev/` | serveur local | le déclencheur de génération répond 200 |
-| `endtoend/smoke/` | serveur + CDN | `/health` répond avec la version, puis génère et publie un **récap de démo** et vérifie que `demo.json` a été republié |
+| `endtoend/smoke/` | serveur + CDN | `/health` répond avec la version, puis génère et publie un **récap de test** et vérifie que `test.json` a été republié |
 
 `enbref/` ne nécessite ni serveur ni secret.
 
-⚠️ `smoke/` écrase `demo.json` sur le CDN — **relire `demo.json` à la main après chaque lancement**
-(glossaire, Récap de démo) : il exige un serveur dont le `GithubToken` est renseigné,
-et attend 90 s le déploiement de GitHub Pages. Il échouera tant que la génération n'est pas
-implémentée (étape 2).
+`smoke/` publie sur `test.json` uniquement (ADR-007) : le récap de test n'appelle pas le LLM, ne
+consomme aucun crédit et ne touche ni `latest.json` ni `demo.json`. Il exige un serveur dont le
+`GithubToken` est renseigné, et attend 90 s le déploiement de GitHub Pages. Il échouera tant que la
+publication n'est pas implémentée.
+
+⚠️ `dev/GenerateRecapDaily` appelle l'API Claude : chaque lancement consomme des crédits.
 
 ## Lancer
 

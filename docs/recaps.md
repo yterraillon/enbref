@@ -9,7 +9,7 @@ et ADR-007 ([`architecture-decision-record.md`](architecture-decision-record.md)
 |---|---|---|---|
 | **Code** | `RecapType.Daily` | `RecapType.Demo` | `RecapType.Test` |
 | **Rôle** | Production | Boucle complète à la demande | Valider la publication uniquement |
-| **Déclencheur** | Job quotidien, 17 h | Back-office, `POST /api/recaps/generations`, smoke test | Back-office, `POST /api/recaps/generations`, CI |
+| **Déclencheur** | Job quotidien, 17 h | Back-office, `POST /api/recaps/generations` | Back-office, `POST /api/recaps/generations`, smoke test de CI |
 | **Collecte** | Flux RSS réels | Flux RSS réels | Fausse source |
 | **LLM** | API Claude | API Claude | Aucun |
 | **Crédits** | Oui | Oui | Non |

@@ -43,7 +43,7 @@ ne lève, et l'écran se vide. Le fait que ça compile ne prouve rien. Deux cons
 
 Le glossaire s'applique aussi aux libellés affichés et aux noms de types Swift : `Recap`, `Brief`,
 `Category`, et les sept catégories dans leur ordre fixe (Politique, International, Économie,
-Société, Technologies, Sport, Culture).
+Société, Technologies & Science, Sport, Culture).
 
 `Brief.Title` est le titre **affiché**. `Headline` désigne le titre brut RSS, qui ne parvient jamais
 à l'app — ce type n'a donc aucune raison d'exister côté Swift.

@@ -16,37 +16,27 @@
 @* Pas d'appel au chargement : seul le clic consomme des crédits. *@
 <button @onclick="SendAsync" disabled="@isSending">@(isSending ? "Envoi…" : "Envoyer")</button>
 
-@if (answer is not null)
+@if (response is not null)
 {
-    <p>@answer</p>
-}
-
-@if (error is not null)
-{
-    <p><strong>@error</strong></p>
+    <p>Statut : @response.Status</p>
+    <p>@response.Content</p>
+    @if (response.Error is not null)
+    {
+        <p><strong>@response.Error</strong></p>
+    }
 }
 
 @code {
-    private string? answer;
-    private string? error;
+    private static readonly LlmRequest Request = new("Réponds en une phrase.", "Hello, Claude");
+
+    private LlmResponse? response;
     private bool isSending;
 
     private async Task SendAsync()
     {
         isSending = true;
-        answer = null;
-        error = null;
-        try
-        {
-            answer = await LlmClient.SendAsync(CancellationToken.None);
-        }
-        catch (Exception exception)
-        {
-            error = exception.Message;
-        }
-        finally
-        {
-            isSending = false;
-        }
+        response = null;
+        response = await LlmClient.SendAsync(Request, CancellationToken.None);
+        isSending = false;
     }
 }

@@ -53,9 +53,9 @@ ne change qu'à la demande. Deux usages : la revue App Store, qui exige un conte
 présentable, et la vérification qu'un client sait charger et afficher un récap sans dépendre de la
 génération.
 
-Le smoke test Bruno (`tests/endtoend/smoke/`) le régénère et le republie pour vérifier la chaîne
-jusqu'au CDN : c'est une demande explicite, et **chaque lancement doit être suivi d'une relecture
-manuelle** de `demo.json`.
+Il ne se régénère que sur demande explicite, et **chaque génération doit être suivie d'une relecture
+manuelle** de `demo.json`. Le smoke test ne le touche pas : il vérifie la publication avec le récap
+de test (ADR-007).
 
 **À ne pas dire** : récap de test (c'est une autre notion, voir ci-dessous), fixture, mock.
 
@@ -119,7 +119,7 @@ récap présente toujours ces sept catégories, dans cet ordre.
 | 2 | International | `International` |
 | 3 | Économie | `Economy` |
 | 4 | Société | `Society` |
-| 5 | Technologies | `Technology` |
+| 5 | Technologies & Science | `TechnologyAndScience` |
 | 6 | Sport | `Sport` |
 | 7 | Culture | `Culture` |
 
@@ -311,7 +311,7 @@ Absents du code à ce stade : la génération, la publication, l'historique, les
 - **Heure de génération** — 17 h, conformément au cron `0 0 17 * * ?` du job. L'ancien serveur mentionnait
   16 h comme cible ; c'est 17 h qui fait foi.
 - **Accentuation et nombre des catégories** — le glossaire retient « Économie » (accentué) et
-  « Technologies » (pluriel) comme libellés d'interface. À confirmer au premier rendu réel dans
+  « Technologies & Science » comme libellés d'interface. À confirmer au premier rendu réel dans
   l'application.
 - **Plafond de 200 caractères sur le résumé** — dérivé du budget de lecture (§ 7), pas encore
   éprouvé sur une génération réelle. À réévaluer après le premier récap produit par l'API Claude.

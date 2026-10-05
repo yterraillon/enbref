@@ -14,11 +14,12 @@ src/
 ├── Api/                     racine de composition : Program.cs, DI
 │   ├── Features/
 │   │   ├── CollectHeadlines/ collecte, appelée en mémoire (génération, back-office)
-│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler, Command
+│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler, Command, GenerationAgent (prompt + validation)
 │   ├── Shared/              uniquement ce qui sert à plusieurs slices
 │   └── BackOffice/          Blazor Server, servi sous /back-office
 └── Infrastructure/          implémentations des dépendances sortantes
-    └── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
+    ├── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
+    └── Llm/                 ILlmClient : AnthropicLlmClient (erreurs SDK → LlmStatus)
 ```
 
 **Pas de MediatR.** Les handlers sont des classes ordinaires, injectées et appelées directement par

@@ -1,9 +1,13 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+
 namespace EnBref.Api.Features.GenerateRecap;
 
 public static class GenerateRecapEndpoint
 {
     public static IServiceCollection AddGenerateRecap(this IServiceCollection services)
     {
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddScoped<GenerationAgent>();
         return services.AddScoped<GenerateRecapHandler>();
     }
 
@@ -20,7 +24,8 @@ public static class GenerateRecapEndpoint
 
                 return result.IsSuccessful
                     ? Results.Ok(response)
-                    : Results.Problem("Aucun titre collecté.", statusCode: StatusCodes.Status502BadGateway,
+                    : Results.Problem(result.Error is null ? "Aucun titre collecté." : $"Génération impossible : {result.Error}",
+                        statusCode: StatusCodes.Status502BadGateway,
                         extensions: new Dictionary<string, object?> { ["feeds"] = response.Feeds });
             })
             .WithName("GenerateRecap")
@@ -33,7 +38,7 @@ public static class GenerateRecapEndpoint
 public sealed record GenerateRecapResponse(
     int HeadlineCount,
     IReadOnlyList<GenerateRecapResponse.FeedSummary> Feeds,
-    string? LlmResponse)
+    Recap? Recap)
 {
     public sealed record FeedSummary(string Source, string Status, int HeadlineCount, string? Error);
 
@@ -42,5 +47,5 @@ public sealed record GenerateRecapResponse(
         result.Collection.Feeds
             .Select(feed => new FeedSummary(feed.Feed.Source, feed.Status.ToString(), feed.Headlines.Count, feed.Error))
             .ToList(),
-        result.LlmResponse);
+        result.Recap);
 }

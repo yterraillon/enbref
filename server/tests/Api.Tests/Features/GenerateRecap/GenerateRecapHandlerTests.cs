@@ -2,6 +2,7 @@ using EnBref.Api.Features.GenerateRecap;
 using EnBref.Api.Shared;
 using EnBref.Api.Tests.Features.CollectHeadlines;
 using EnBref.Infrastructure.Collection;
+using EnBref.Infrastructure.Llm;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EnBref.Api.Tests.Features.GenerateRecap;
@@ -11,7 +12,9 @@ public class GenerateRecapHandlerTests
     private static readonly Feed Feed = new("Source", new Uri("https://source.test/rss"));
 
     private static GenerateRecapHandler Handler(IFeedReader rss, IFeedReader fake, StubLlmClient? llm = null) =>
-        new(CollectHeadlinesHandlerTests.Handler(rss, fake, Feed), llm ?? new StubLlmClient(),
+        new(CollectHeadlinesHandlerTests.Handler(rss, fake, Feed),
+            new GenerationAgent(llm ?? StubLlmClient.Completed(GenerationAgentTests.Output()), NullLogger<GenerationAgent>.Instance),
+            TimeProvider.System,
             NullLogger<GenerateRecapHandler>.Instance);
 
     [Test]
@@ -41,20 +44,33 @@ public class GenerateRecapHandlerTests
     [Test]
     [Arguments(RecapType.Daily)]
     [Arguments(RecapType.Demo)]
-    public async Task Successful_collection_returns_the_llm_response(RecapType type)
+    public async Task Successful_collection_returns_the_written_recap(RecapType type)
     {
-        var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"), new StubLlmClient("Bonjour"));
+        var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"));
 
         var result = await handler.HandleAsync(new GenerateRecapCommand(type, Publish: false), CancellationToken.None);
 
-        await Assert.That(result.LlmResponse).IsEqualTo("Bonjour");
+        await Assert.That(result.IsSuccessful).IsTrue();
+        await Assert.That(result.Recap).IsNotNull();
+    }
+
+    [Test]
+    public async Task Failed_agent_fails_the_generation()
+    {
+        var llm = new StubLlmClient(new LlmResponse(LlmStatus.Unavailable, "", "surcharge"));
+        var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"), llm);
+
+        var result = await handler.HandleAsync(new GenerateRecapCommand(RecapType.Daily, Publish: false), CancellationToken.None);
+
+        await Assert.That(result.IsSuccessful).IsFalse();
+        await Assert.That(result.Error).IsNotNull();
     }
 
     [Test]
     public async Task Failed_collection_does_not_call_the_llm()
     {
         var broken = new StubFeedReader(feed => new FeedResult(feed, FeedStatus.Invalid, [], "pas du XML"));
-        var llm = new StubLlmClient();
+        var llm = StubLlmClient.Completed(GenerationAgentTests.Output());
         var handler = Handler(broken, StubFeedReader.Available("faux"), llm);
 
         await handler.HandleAsync(new GenerateRecapCommand(RecapType.Daily, Publish: false), CancellationToken.None);
@@ -65,12 +81,13 @@ public class GenerateRecapHandlerTests
     [Test]
     public async Task Test_recap_does_not_call_the_llm()
     {
-        var llm = new StubLlmClient();
+        var llm = StubLlmClient.Completed(GenerationAgentTests.Output());
         var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"), llm);
 
         var result = await handler.HandleAsync(new GenerateRecapCommand(RecapType.Test, Publish: false), CancellationToken.None);
 
         await Assert.That(llm.Calls).IsEqualTo(0);
-        await Assert.That(result.LlmResponse).IsNull();
+        await Assert.That(result.IsSuccessful).IsTrue();
+        await Assert.That(result.Recap).IsNull();
     }
 }

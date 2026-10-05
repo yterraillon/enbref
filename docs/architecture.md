@@ -80,7 +80,7 @@ raison précise :
 | Dépendance | Abstraction | Pourquoi |
 |---|---|---|
 | Flux RSS | lecteur de flux | Les sources changent ; le format aussi (RSS, Atom). |
-| LLM | agent de génération | Claude est le seul fournisseur (ADR-007) ; le contrat permet les stubs de test et la future couche d'inférence. Le récap de test ne l'appelle pas. |
+| LLM | client LLM (`ILlmClient`) | Claude est le seul fournisseur (ADR-007) ; le contrat permet les stubs de test et la future couche d'inférence. Il traduit les erreurs du fournisseur en statuts neutres. L'**agent de génération**, qui porte le prompt et la validation du récap, vit dans le slice de génération : ce sont des règles métier. Le récap de test ne l'appelle pas. |
 | Dépôt de publication | publieur | La destination peut changer ; surtout, le récap de test ne doit atteindre que `test.json`. |
 
 LiteDB n'est pas dans cette liste : l'historique est un détail interne, et une abstraction de

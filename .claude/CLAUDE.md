@@ -102,8 +102,8 @@ lecture des secrets en variables d'environnement.
 
 - **Unitaires** : TUnit, `server/tests/` (`Api.Tests`, `Infrastructure.Tests`).
 - **End-to-end** : Bruno, `tests/endtoend/` — `enbref/` vérifie chaque jour le récap publié sur le
-  CDN, `dev/` appelle le déclencheur de génération local, `smoke/` génère un récap de démo et vérifie
-  sa publication. Voir `tests/README.md`.
+  CDN, `dev/` appelle le déclencheur de génération local, `smoke/` génère un récap de test (sans LLM)
+  et vérifie sa publication sur `test.json`. Voir `tests/README.md`.
 
 ## General Behavior
 

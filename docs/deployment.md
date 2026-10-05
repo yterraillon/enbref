@@ -24,9 +24,9 @@ Version **CalVer** `YYYY.MM.DD.NN` (ADR-004), calculée sur les tags du jour, pa
 image, elle vaut `dev`. L'argument ne s'appelle pas `VERSION` : MSBuild lirait la variable
 d'environnement comme `$(Version)` et la restauration échouerait.
 
-Le smoke test de PR génère et publie le **récap de démo** : il lit le secret `ENBREF_GITHUB_TOKEN`
-et `demo.json` doit être relu après chaque PR. Tant que la publication n'est pas implémentée, le job
-est en `continue-on-error`.
+Le smoke test de PR génère et publie le **récap de test** sur `test.json` (ADR-007) : il lit le
+secret `ENBREF_GITHUB_TOKEN`, mais n'appelle pas le LLM et n'a donc besoin d'aucune clé Anthropic.
+Tant que la publication n'est pas implémentée, le job est en `continue-on-error`.
 
 Le test quotidien du récap publié (`e2e-recap-publication.yml`) a été retiré ; la collection
 `tests/endtoend/enbref/` reste lançable à la main.

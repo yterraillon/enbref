@@ -1,5 +1,5 @@
 meta {
-  name: GenerateDemoRecap
+  name: GenerateTestRecap
   type: http
   seq: 1
 }
@@ -12,7 +12,7 @@ post {
 
 body:json {
   {
-    "type": "Demo",
+    "type": "Test",
     "publish": true
   }
 }
@@ -26,6 +26,7 @@ script:post-response {
 }
 
 docs {
-  Génère et publie un récap de démo. ⚠️ Écrase demo.json sur le CDN, jamais latest.json.
+  Génère et publie un récap de test (ADR-007) : fausse source, sans LLM, aucun crédit consommé.
+  Publie sur test.json, jamais sur latest.json ni demo.json.
   Exige un serveur dont le GithubToken est renseigné.
 }

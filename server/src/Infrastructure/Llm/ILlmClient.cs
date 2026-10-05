@@ -2,6 +2,6 @@ namespace EnBref.Infrastructure.Llm;
 
 public interface ILlmClient
 {
-    /// <summary>Interroge le LLM et renvoie le texte de sa réponse.</summary>
-    Task<string> SendAsync(CancellationToken cancellationToken);
+    /// <summary>Constate la réponse du LLM sans jamais lever, hors annulation.</summary>
+    Task<LlmResponse> SendAsync(LlmRequest request, CancellationToken cancellationToken);
 }
