@@ -81,9 +81,11 @@ Trois notions distinctes — ne pas les confondre, le glossaire les sépare expl
 |---|---|---|---|
 | **Récap du jour** | `latest.json` | Job quotidien 17 h, API Claude | Ce que lisent les clients |
 | **Récap de démo** | `demo.json` | À la demande, puis figé et relu | Revue App Store, test de chargement |
-| **Récap de test** | *non publié* | À la demande, modèles GitHub | CI, vérification de la chaîne |
+| **Récap de test** | `test.json` | À la demande, fausse source, sans LLM | CI, vérification de la publication |
 
-Le récap de démo et le récap de test n'existent pas encore dans le code.
+Le rôle de chacun est détaillé dans `docs/recaps.md`. Les trois sont publiés par
+`POST /api/recaps/generations` (`publish: true`) ; le job de 17 h n'existe pas encore. Forme JSON :
+ADR-008.
 
 ## Stack Docker locale
 
@@ -102,8 +104,8 @@ lecture des secrets en variables d'environnement.
 
 - **Unitaires** : TUnit, `server/tests/` (`Api.Tests`, `Infrastructure.Tests`).
 - **End-to-end** : Bruno, `tests/endtoend/` — `enbref/` vérifie chaque jour le récap publié sur le
-  CDN, `dev/` appelle le déclencheur de génération local, `smoke/` génère un récap de démo et vérifie
-  sa publication. Voir `tests/README.md`.
+  CDN, `dev/` appelle le déclencheur de génération local, `smoke/` génère un récap de test (sans LLM)
+  et vérifie sa publication sur `test.json`. Voir `tests/README.md`.
 
 ## General Behavior
 

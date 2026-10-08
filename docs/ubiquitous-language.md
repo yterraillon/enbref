@@ -53,28 +53,39 @@ ne change qu'à la demande. Deux usages : la revue App Store, qui exige un conte
 présentable, et la vérification qu'un client sait charger et afficher un récap sans dépendre de la
 génération.
 
-Le smoke test Bruno (`tests/endtoend/smoke/`) le régénère et le republie pour vérifier la chaîne
-jusqu'au CDN : c'est une demande explicite, et **chaque lancement doit être suivi d'une relecture
-manuelle** de `demo.json`.
+Il ne se régénère que sur demande explicite, et **chaque génération doit être suivie d'une relecture
+manuelle** de `demo.json`. Le smoke test ne le touche pas : il vérifie la publication avec le récap
+de test (ADR-007).
 
 **À ne pas dire** : récap de test (c'est une autre notion, voir ci-dessous), fixture, mock.
 
 ### Récap de test
-**Code** : `TestRecap` · **UI** : « Récap de test »
+**Code** : `TestRecap` · **UI** : « Récap de test » · **Artefact** : `test.json`
 
-Un récap généré à la demande pour vérifier que la chaîne de génération fonctionne — depuis la CI ou
-depuis le back-office. Il emploie les modèles GitHub plutôt que l'API Claude, et **n'est jamais
-publié** : il n'écrase ni `latest.json` ni `demo.json`.
+Un récap produit à la demande à partir de la fausse source, **sans appel au LLM**, et publié sur
+`test.json` — depuis la CI ou depuis le back-office. Il vérifie la chaîne de publication de bout en
+bout sans consommer de crédits. Il n'écrase **jamais** `latest.json` ni `demo.json` (ADR-007).
 
 **À ne pas dire** : récap de démo, récap jetable, dry run.
 
 ### Type de récap
 **Code** : `RecapType` (`Daily`, `Demo`, `Test`) · **UI** : « Type de récap »
 
-Ce que produit une génération : récap du jour, de démo ou de test. Le type détermine le LLM employé
-et l'artefact de publication ; un type `Test` n'est jamais publié, quoi que demande l'appelant.
+Ce que produit une génération : récap du jour, de démo ou de test. Le type détermine si le LLM est
+appelé et l'artefact de publication ; un type `Test` n'appelle jamais le LLM et ne publie que sur
+`test.json`, quoi que demande l'appelant.
 
 **À ne pas dire** : mode, variante, variant, flavor, cible, target.
+
+### Artefact
+**Code** : `Artifact` · **UI** : « Artefact »
+
+Le fichier publié sur le dépôt de publication pour un type de récap : `latest.json` (récap du
+jour), `demo.json` (récap de démo) ou `test.json` (récap de test). L'artefact découle du type, dans
+le code, jamais d'un paramètre d'appel ni de la configuration (ADR-007). Sa forme JSON est fixée par
+ADR-008.
+
+**À ne pas dire** : fichier, export, snapshot, dump.
 
 ---
 
@@ -118,7 +129,7 @@ récap présente toujours ces sept catégories, dans cet ordre.
 | 2 | International | `International` |
 | 3 | Économie | `Economy` |
 | 4 | Société | `Society` |
-| 5 | Technologies | `Technology` |
+| 5 | Technologies & Science | `TechnologyAndScience` |
 | 6 | Sport | `Sport` |
 | 7 | Culture | `Culture` |
 
@@ -170,6 +181,14 @@ exception assumée, la valeur `Available` (« exploitable »), choisie parce qu'
 
 ## 5. Les traitements
 
+### Étape
+**Code** : `GenerationStep` (`Collection`, `Generation`, `Publication`) · **UI** : « Étape »
+
+L'une des trois étapes qu'enchaîne une génération : collecte, génération, publication. Une
+génération en échec désigne l'étape qui a échoué.
+
+**À ne pas dire** : phase, stage, stade.
+
 ### Collecte
 **Code** : `Collection` · **UI** : « Collecte »
 
@@ -198,10 +217,21 @@ collecte puis génération à 17 h ; en cas d'échec, trois tentatives avant ale
 ### Publication
 **Code** : `Publication` · **UI** : « Publication »
 
-L'étape qui dépose un récap sur le dépôt de publication, sous `latest.json` ou `demo.json`, via
-l'API GitHub. Un récap de test n'est jamais publié.
+L'étape qui dépose un récap sur le dépôt de publication, sous `latest.json`, `demo.json` ou
+`test.json` selon le type de récap, via l'API GitHub.
 
-**À ne pas dire** : déploiement, push, upload, export.
+Le dépôt de publication est abstrait dans le code par `IPublicationRepository`.
+
+**À ne pas dire** : déploiement, push, upload, export. « Publisher » et « publieur » sont réservés :
+le premier désigne une source (§ 4), le second n'est plus employé.
+
+### Résultat de publication
+**Code** : `PublicationResult` · **UI** : « Résultat de publication »
+
+Ce que constate la publication d'un récap : le commit qui porte l'artefact publié, ou la cause de
+l'échec. Une publication en échec fait échouer la génération qui l'a demandée.
+
+**À ne pas dire** : résultat de push, résultat d'upload, rapport de publication.
 
 ### Historique
 **Code** : `History` · **UI** : « Historique »
@@ -274,7 +304,11 @@ budget de lecture est la contrainte, le plafond de caractères n'en est que la t
 | canal, stream, abonnement | Flux |
 | éditeur, média, publisher | Source |
 | titre (seul), item brut | Titre collecté |
+| phase, stage, stade | Étape |
 | scraping, ingestion, crawl | Collecte |
+| push, upload, déploiement | Publication |
+| fichier, export, snapshot (d'un récap publié) | Artefact |
+| publieur, publisher (pour le dépôt de publication) | Dépôt de publication (`IPublicationRepository`) |
 | admin, console, dashboard | Back-office |
 | quota, solde, tokens | Crédits |
 | statut, santé, health, uptime | Disponibilité |
@@ -299,10 +333,16 @@ clients et le test Bruno quotidien.
 | `sections` (titre + texte libre) | `Category` portant des `Brief` | Pas de catégories fixes ni de brèves dans l'artefact publié. |
 | `title` (« Récap du … ») | — | Un récap n'a pas de titre au glossaire ; le champ est asserté par le test Bruno quotidien. |
 
-Absents du code à ce stade : la génération, la publication, l'historique, les
+Absents du code à ce stade : l'historique, les
 **crédits** et la **disponibilité**. Le back-office n'est qu'une coquille.
 
 ### Autres écarts
+
+- **« Génération » a deux sens** — l'étape qui transforme les titres collectés en récap (§ 5), et
+  l'enchaînement complet collecte → génération → publication (`GenerateRecap`,
+  `/api/recaps/generations`, « une publication en échec fait échouer la génération »). Le second
+  sens est le bon ; l'étape sera renommée, d'où `GenerationStep.Generation` en attendant. Le nouveau
+  terme est à définir ici avant d'être implémenté.
 
 - **`.claude/CLAUDE.md` § Project Overview** — employait « récap de test » pour désigner le **récap
   de démo** (§ 2) ; corrigé. « Le récap du jour non caché » désigne un affichage back-office qui
@@ -310,7 +350,7 @@ Absents du code à ce stade : la génération, la publication, l'historique, les
 - **Heure de génération** — 17 h, conformément au cron `0 0 17 * * ?` du job. L'ancien serveur mentionnait
   16 h comme cible ; c'est 17 h qui fait foi.
 - **Accentuation et nombre des catégories** — le glossaire retient « Économie » (accentué) et
-  « Technologies » (pluriel) comme libellés d'interface. À confirmer au premier rendu réel dans
+  « Technologies & Science » comme libellés d'interface. À confirmer au premier rendu réel dans
   l'application.
 - **Plafond de 200 caractères sur le résumé** — dérivé du budget de lecture (§ 7), pas encore
   éprouvé sur une génération réelle. À réévaluer après le premier récap produit par l'API Claude.

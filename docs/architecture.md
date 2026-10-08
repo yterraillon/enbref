@@ -80,8 +80,8 @@ raison précise :
 | Dépendance | Abstraction | Pourquoi |
 |---|---|---|
 | Flux RSS | lecteur de flux | Les sources changent ; le format aussi (RSS, Atom). |
-| LLM | agent de génération | On génère avec Claude en production et les modèles GitHub pour le récap de test. Deux implémentations, un contrat. |
-| Dépôt de publication | publieur | La destination peut changer ; surtout, on doit pouvoir *ne pas* publier (récap de test). |
+| LLM | client LLM (`ILlmClient`) | Claude est le seul fournisseur (ADR-007) ; le contrat permet les stubs de test et la future couche d'inférence. Il traduit les erreurs du fournisseur en statuts neutres. L'**agent de génération**, qui porte le prompt et la validation du récap, vit dans le slice de génération : ce sont des règles métier. Le récap de test ne l'appelle pas. |
+| Dépôt de publication | dépôt de publication (`IPublicationRepository`) | La destination peut changer ; surtout, le récap de test ne doit atteindre que `test.json`. |
 
 LiteDB n'est pas dans cette liste : l'historique est un détail interne, et une abstraction de
 persistance posée « au cas où » coûte plus qu'elle ne rapporte.
@@ -92,7 +92,18 @@ persistance posée « au cas où » coûte plus qu'elle ne rapporte.
 système, et la seule qui ne peut pas être modifiée unilatéralement.
 
 Sa forme est fixée par le glossaire (§ 7) : un récap, sept catégories ordonnées, une à deux brèves
-par catégorie, chaque brève portant un titre et un résumé d'une phrase.
+par catégorie, chaque brève portant un titre et un résumé d'une phrase. Sa sérialisation est fixée
+par ADR-008 :
+
+```json
+{
+  "date": "2026-10-08",
+  "categories": [
+    { "category": "politics", "briefs": [ { "title": "…", "summary": "…" } ] },
+    …
+  ]
+}
+```
 
 **Toute évolution de ce contrat est une rupture** tant qu'une version de l'application iOS déployée
 lit l'ancienne forme. Un champ renommé ou supprimé casse silencieusement un client Swift dont la
@@ -117,8 +128,9 @@ nom de domaine. Il ne consomme pas le récap.
 
 Le code importé de `myfanwy` a été supprimé (`387318c`) ; le serveur est **reconstruit de zéro**
 selon les règles ci-dessus (ADR-005). Le seul point d'entrée existant est
-`POST /api/recaps/generations` (`Features/GenerateRecap`), protégé par clé (ADR-006), dont le
-handler est encore vide.
+`POST /api/recaps/generations` (`Features/GenerateRecap`). Son handler enchaîne collecte,
+génération et publication sur l'artefact du type de récap ; la clé d'ADR-006 n'est pas encore
+implémentée.
 
 ## 7. Ce qui reste à décider
 

@@ -27,9 +27,14 @@ nouvel ADR — ce n'est pas une décision de story.
 La forme cible du récap est au § 7 du glossaire : sept catégories ordonnées, une à deux brèves
 chacune, chaque brève portant un titre et un résumé d'une phrase.
 
-⚠️ **Le serveur ne publie pas encore cette forme.** Il publie aujourd'hui un `Recap` avec un `Title`
-et des `Sections { Title, Text }` en texte libre. Partir du contrat **réel**, constaté sur
-l'artefact publié, pas de la cible.
+Le serveur publie cette forme sur `latest.json` (récap du jour), `demo.json` et `test.json`, avec
+la sérialisation fixée par **ADR-008** : `{ date, categories: [ { category, briefs: [ { title,
+summary } ] } ] }`, catégories dans l'ordre du glossaire. L'app lit `latest.json` ; `demo.json` sert
+de test de chargement.
+
+⚠️ **`latest-recap.json` est l'ancien artefact** (`Title`, `Sections { Title, Text }`), publié par
+myfanwy. L'app ne doit pas le lire. Partir du contrat **réel**, constaté sur l'artefact publié,
+pas de mémoire.
 
 ⚠️ **Un champ optionnel avale silencieusement une clé renommée.** La propriété devient `nil`, rien
 ne lève, et l'écran se vide. Le fait que ça compile ne prouve rien. Deux conséquences :
@@ -43,7 +48,7 @@ ne lève, et l'écran se vide. Le fait que ça compile ne prouve rien. Deux cons
 
 Le glossaire s'applique aussi aux libellés affichés et aux noms de types Swift : `Recap`, `Brief`,
 `Category`, et les sept catégories dans leur ordre fixe (Politique, International, Économie,
-Société, Technologies, Sport, Culture).
+Société, Technologies & Science, Sport, Culture).
 
 `Brief.Title` est le titre **affiché**. `Headline` désigne le titre brut RSS, qui ne parvient jamais
 à l'app — ce type n'a donc aucune raison d'exister côté Swift.

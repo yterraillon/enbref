@@ -1,5 +1,6 @@
 @page "/back-office/feeds"
 @using EnBref.Api.Features.CollectHeadlines
+@using EnBref.Infrastructure.Collection
 @inject CollectHeadlinesHandler CollectHeadlines
 
 <PageTitle>EnBref — Flux</PageTitle>
@@ -32,6 +33,9 @@
 }
 
 @code {
+    [Inject(Key = FeedReaderKeys.Rss)]
+    private IFeedReader RssFeedReader { get; set; } = null!;
+
     private CollectionResult? collection;
     private bool isCollecting;
 
@@ -40,7 +44,7 @@
     private async Task CollectAsync()
     {
         isCollecting = true;
-        collection = await CollectHeadlines.HandleAsync(useFakeReader: false, CancellationToken.None);
+        collection = await CollectHeadlines.HandleAsync(RssFeedReader, CancellationToken.None);
         isCollecting = false;
     }
 }

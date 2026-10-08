@@ -1,11 +1,11 @@
 meta {
-  name: DemoRecapShouldBePublished
+  name: TestRecapShouldBePublished
   type: http
   seq: 2
 }
 
 get {
-  url: {{cdnUrl}}/demo.json?nocache={{$timestamp}}
+  url: {{cdnUrl}}/test.json?nocache={{$timestamp}}
   body: none
   auth: none
 }
@@ -22,10 +22,14 @@ script:pre-request {
 assert {
   res.status: eq 200
   res.body: isJson
+  res.body.date: isString
+  res.body.categories: isArray
+  res.body.categories.length: eq 7
+  res.body.categories[0].category: eq politics
 }
 
 tests {
-  test("demo.json should have been published by this run", function () {
+  test("test.json should have been published by this run", function () {
     const lastModified = new Date(res.headers["last-modified"]);
     const requestedAt = new Date(bru.getVar("generationRequestedAt"));
     expect(lastModified.getTime()).to.be.at.least(requestedAt.getTime() - 60000);
@@ -33,6 +37,6 @@ tests {
 }
 
 docs {
-  Vérifie sur le CDN que demo.json a été republié après la génération de l'étape 1.
-  La forme du récap sera vérifiée quand le contrat sera implémenté (étape 2).
+  Vérifie sur le CDN que test.json a été republié après la génération de l'étape 1.
+  Vérifie aussi la forme du contrat publié (ADR-008).
 }

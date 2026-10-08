@@ -6,6 +6,7 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Anthropic" />
     <PackageReference Include="System.ServiceModel.Syndication" />
   </ItemGroup>
 </Project>

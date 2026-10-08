@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
+using EnBref.Api;
 using EnBref.Api.BackOffice;
 using EnBref.Api.Features.CollectHeadlines;
 using EnBref.Api.Features.GenerateRecap;
-using EnBref.Api.Shared;
 using EnBref.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 

@@ -11,14 +11,17 @@ fonctionnalité = **un dossier**, contenant son endpoint, son handler, ses modè
 
 ```
 src/
-├── Api/                     racine de composition : Program.cs, DI
+├── Api/                     racine de composition : Program.cs, DI, ServerVersion (/health, back-office)
 │   ├── Features/
 │   │   ├── CollectHeadlines/ collecte, appelée en mémoire (génération, back-office)
-│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler, Command
-│   ├── Shared/              uniquement ce qui sert à plusieurs slices
+│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler (+ Command, Result ; type → pipeline et artefact),
+│   │                        Recap (modèle, RecapType), RecapContract (JSON publié, ADR-008),
+│   │                        IRecapWriter (GenerationAgent : prompt + validation, TestRecapWriter)
 │   └── BackOffice/          Blazor Server, servi sous /back-office
 └── Infrastructure/          implémentations des dépendances sortantes
-    └── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
+    ├── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
+    ├── Llm/                 ILlmClient : AnthropicLlmClient (erreurs SDK → LlmStatus)
+    └── Publication/         IPublicationRepository : GithubPublicationRepository (API Contents GitHub, erreurs → PublicationResult)
 ```
 
 **Pas de MediatR.** Les handlers sont des classes ordinaires, injectées et appelées directement par
@@ -39,14 +42,15 @@ Trois dépendances sortantes doivent rester derrière un contrat, chacune pour u
 | Dépendance | Pourquoi l'abstraire |
 |---|---|
 | Flux RSS | les sources changent, le format aussi (RSS, Atom) |
-| LLM | Claude en production, modèles GitHub pour le récap de test : deux implémentations |
-| Dépôt de publication | la destination peut changer, et le récap de test ne doit **pas** publier |
+| LLM | Claude seul fournisseur (ADR-007) ; stubs en test, couche d'inférence à venir |
+| Dépôt de publication | la destination peut changer, et le récap de test ne publie que sur `test.json` |
 
 **LiteDB n'en fait pas partie.** L'historique est un détail interne ; un `IRepository<T>` posé « au
 cas où » ajoute de l'indirection sans bénéfice.
 
 Règle générale : une abstraction devient partagée quand un **deuxième** appelant la réclame, pas
-avant. `Shared/` n'est pas un endroit où ranger les choses par défaut.
+avant. `Api/Shared/` n'existe pas tant qu'aucun type ne sert à deux slices : on le crée à ce
+moment-là, et ce n'est pas un endroit où ranger les choses par défaut.
 
 ## Ce qui est interdit
 
@@ -54,8 +58,9 @@ avant. `Shared/` n'est pas un endroit où ranger les choses par défaut.
   des crédits et peut écraser le récap publié. Elle se déclenche par le job planifié, par une action
   explicite du back-office, ou par `POST /api/recaps/generations` (ADR-006).
   Aucun autre déclencheur, et jamais en `GET`.
-- **Publier depuis un chemin de test.** Le récap de test ne doit écraser ni `latest.json` ni
-  `demo.json`. Cette garantie se tient dans le code, pas dans la configuration.
+- **Publier un récap de test ailleurs que sur `test.json`.** Il ne doit écraser ni `latest.json` ni
+  `demo.json` (ADR-007). Cette garantie se tient dans le code, pas dans la configuration.
+- **Appeler le LLM pour un récap de test.** Il ne consomme pas de crédits.
 - **Exposer le serveur.** Aucun endpoint n'est destiné à un client externe. Le back-office est
   LAN-only, garanti par l'infrastructure et non par le code (ADR-006) : c'est ce qui lui permet de
   se passer d'authentification.
@@ -90,11 +95,13 @@ aujourd'hui (par l'ancien serveur) a une autre forme** : voir le § 9 du glossai
 ## Configuration et secrets
 
 Clés lues dans le Secret Manager en développement et dans les variables d'environnement en
-`Production`. Les clés du LLM et de ntfy seront définies à l'étape 2 de la reconstruction.
+`Production`. La clé ntfy sera définie à l'étape 2 de la reconstruction.
 
 | Clé | Rôle |
 |---|---|
-| `GithubToken` | publication — **vide en local**, sinon on écrase la production |
+| `GithubToken` | publication — **vide en local**, sinon on écrase la production ; absent → publication en échec (502) |
+| `Anthropic:ApiKey` | API Claude — user secrets en local, `Anthropic__ApiKey` en production |
+| `Anthropic:Model` | modèle Claude — `claude-haiku-4-5` en Development, `claude-opus-5-5` sinon |
 
 Aucun secret en clair dans le dépôt, y compris dans `.agentsworkspace/`.
 
