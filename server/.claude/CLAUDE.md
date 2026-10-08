@@ -15,7 +15,8 @@ src/
 │   ├── Features/
 │   │   ├── CollectHeadlines/ collecte, appelée en mémoire (génération, back-office)
 │   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler, Command, GenerationAgent (prompt + validation),
-│   │                        RecapArtifact (type → artefact), RecapContract (JSON publié, ADR-008), TestRecap
+│   │                        RecapArtifact (type → artefact), RecapContract (JSON publié, ADR-008),
+│   │                        IRecapWriter (GenerationAgent, TestRecapWriter), Handler (type → pipeline)
 │   ├── Shared/              uniquement ce qui sert à plusieurs slices
 │   └── BackOffice/          Blazor Server, servi sous /back-office
 └── Infrastructure/          implémentations des dépendances sortantes

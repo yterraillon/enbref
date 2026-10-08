@@ -9,8 +9,8 @@ public class CollectHeadlinesHandlerTests
     private static readonly Feed Working = new("Working", new Uri("https://working.test/rss"));
     private static readonly Feed Broken = new("Broken", new Uri("https://broken.test/rss"));
 
-    internal static CollectHeadlinesHandler Handler(IFeedReader rss, IFeedReader? fake = null, params Feed[] feeds) =>
-        new(rss, fake ?? StubFeedReader.Available("fake"), Options.Create(new FeedOptions { Feeds = [.. feeds] }));
+    internal static CollectHeadlinesHandler Handler(params Feed[] feeds) =>
+        new(Options.Create(new FeedOptions { Feeds = [.. feeds] }));
 
     [Test]
     public async Task One_broken_feed_still_collects_the_others()
@@ -19,7 +19,7 @@ public class CollectHeadlinesHandlerTests
             ? new FeedResult(feed, FeedStatus.Unreachable, [], "timeout")
             : new FeedResult(feed, FeedStatus.Available, ["A", "B"]));
 
-        var result = await Handler(rss, null, Working, Broken).HandleAsync(useFakeReader: false, CancellationToken.None);
+        var result = await Handler(Working, Broken).HandleAsync(rss, CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsTrue();
         await Assert.That(result.IsDegraded).IsTrue();
@@ -31,7 +31,7 @@ public class CollectHeadlinesHandlerTests
     {
         var rss = new StubFeedReader(feed => new FeedResult(feed, FeedStatus.Empty, []));
 
-        var result = await Handler(rss, null, Working, Broken).HandleAsync(useFakeReader: false, CancellationToken.None);
+        var result = await Handler(Working, Broken).HandleAsync(rss, CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsFalse();
     }
@@ -41,20 +41,8 @@ public class CollectHeadlinesHandlerTests
     {
         var rss = StubFeedReader.Available("Même dépêche");
 
-        var result = await Handler(rss, null, Working, Broken).HandleAsync(useFakeReader: false, CancellationToken.None);
+        var result = await Handler(Working, Broken).HandleAsync(rss, CancellationToken.None);
 
         await Assert.That(result.Headlines).IsEquivalentTo(["Même dépêche", "Même dépêche"]);
-    }
-
-    [Test]
-    public async Task Fake_reader_is_used_on_demand()
-    {
-        var rss = StubFeedReader.Available("réel");
-        var fake = StubFeedReader.Available("faux");
-
-        var result = await Handler(rss, fake, Working).HandleAsync(useFakeReader: true, CancellationToken.None);
-
-        await Assert.That(result.Headlines).IsEquivalentTo(["faux"]);
-        await Assert.That(rss.Calls).IsEqualTo(0);
     }
 }

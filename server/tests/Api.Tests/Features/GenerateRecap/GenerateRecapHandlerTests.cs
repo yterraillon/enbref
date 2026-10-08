@@ -13,8 +13,11 @@ public class GenerateRecapHandlerTests
     private static readonly Feed Feed = new("Source", new Uri("https://source.test/rss"));
 
     private static GenerateRecapHandler Handler(IFeedReader rss, IFeedReader fake, StubLlmClient? llm = null, StubPublicationRepository? publicationRepository = null) =>
-        new(CollectHeadlinesHandlerTests.Handler(rss, fake, Feed),
+        new(CollectHeadlinesHandlerTests.Handler(Feed),
+            rss,
+            fake,
             new GenerationAgent(llm ?? StubLlmClient.Completed(GenerationAgentTests.Output()), NullLogger<GenerationAgent>.Instance),
+            new TestRecapWriter(),
             publicationRepository ?? StubPublicationRepository.Succeeding(),
             TimeProvider.System,
             NullLogger<GenerateRecapHandler>.Instance);

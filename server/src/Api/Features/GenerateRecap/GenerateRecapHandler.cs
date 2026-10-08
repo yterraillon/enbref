@@ -1,21 +1,25 @@
 using EnBref.Api.Features.CollectHeadlines;
 using EnBref.Api.Shared;
+using EnBref.Infrastructure.Collection;
 using EnBref.Infrastructure.Publication;
 
 namespace EnBref.Api.Features.GenerateRecap;
 
 public sealed class GenerateRecapHandler(
     CollectHeadlinesHandler collectHeadlines,
+    [FromKeyedServices(FeedReaderKeys.Rss)] IFeedReader rssFeedReader,
+    [FromKeyedServices(FeedReaderKeys.Fake)] IFeedReader fakeFeedReader,
     GenerationAgent generationAgent,
+    TestRecapWriter testRecapWriter,
     IPublicationRepository publicationRepository,
     TimeProvider timeProvider,
     ILogger<GenerateRecapHandler> logger)
 {
     public async Task<GenerateRecapResult> HandleAsync(GenerateRecapCommand command, CancellationToken cancellationToken)
     {
-        // Le récap de test lit une fausse source : il ne dépend pas des flux réels.
-        var collection = await collectHeadlines.HandleAsync(command.Type == RecapType.Test, cancellationToken);
+        var pipeline = PipelineFor(command.Type);
 
+        var collection = await collectHeadlines.HandleAsync(pipeline.FeedReader, cancellationToken);
         if (!collection.IsSuccessful)
         {
             // TODO ntfy : génération impossible.
@@ -31,48 +35,39 @@ public sealed class GenerateRecapHandler(
         }
 
         var date = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
-
-        // Le récap de test ne consomme pas de crédits : il n'appelle pas le LLM.
-        if (command.Type == RecapType.Test)
-        {
-            return await PublishAsync(command, new GenerateRecapResult(collection, TestRecap.From(date, collection.Headlines), Error: null), cancellationToken);
-        }
-
-        var generation = await generationAgent.WriteAsync(new GenerationContext(date, collection.Headlines), cancellationToken);
-        if (!generation.IsSuccessful)
+        var written = await pipeline.Writer.WriteAsync(new GenerationContext(date, collection.Headlines), cancellationToken);
+        if (written.Recap is not { } recap)
         {
             // TODO ntfy : génération impossible.
-            logger.LogError("Génération {Type} impossible : {Error}", command.Type, generation.Error);
-            return new GenerateRecapResult(collection, Recap: null, generation.Error);
+            logger.LogError("Génération {Type} impossible : {Error}", command.Type, written.Error);
+            return new GenerateRecapResult(collection, Recap: null, written.Error);
         }
 
-        return await PublishAsync(command, new GenerateRecapResult(collection, generation.Recap, Error: null), cancellationToken);
+        var generated = new GenerateRecapResult(collection, recap, Error: null);
+        return command.Publish ? await PublishAsync(pipeline, generated, recap, cancellationToken) : generated;
     }
 
-    private async Task<GenerateRecapResult> PublishAsync(GenerateRecapCommand command, GenerateRecapResult generated, CancellationToken cancellationToken)
+    // Seul endroit où le type de récap est lu : le récap de test lit la fausse source et n'appelle pas le LLM (ADR-007).
+    private RecapPipeline PipelineFor(RecapType type) => type switch
     {
-        if (!command.Publish || generated.Recap is not { } recap)
-        {
-            return generated;
-        }
+        RecapType.Daily => new(rssFeedReader, generationAgent, RecapArtifact.For(type), "du jour"),
+        RecapType.Demo => new(rssFeedReader, generationAgent, RecapArtifact.For(type), "de démo"),
+        RecapType.Test => new(fakeFeedReader, testRecapWriter, RecapArtifact.For(type), "de test"),
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Type de récap sans pipeline."),
+    };
 
-        var artifact = RecapArtifact.For(command.Type);
-        var publication = await publicationRepository.PublishAsync(artifact, RecapContract.Serialize(recap),
-            $"Publication du récap {Label(command.Type)} du {recap.Date:yyyy-MM-dd}", cancellationToken);
+    private async Task<GenerateRecapResult> PublishAsync(RecapPipeline pipeline, GenerateRecapResult generated, Recap recap, CancellationToken cancellationToken)
+    {
+        var publication = await publicationRepository.PublishAsync(pipeline.Artifact, RecapContract.Serialize(recap),
+            $"Publication du récap {pipeline.Label} du {recap.Date:yyyy-MM-dd}", cancellationToken);
         if (!publication.IsSuccessful)
         {
             // TODO ntfy : publication impossible.
-            logger.LogError("Publication {Type} sur {Artifact} impossible : {Error}", command.Type, artifact, publication.Error);
+            logger.LogError("Publication sur {Artifact} impossible : {Error}", pipeline.Artifact, publication.Error);
         }
 
-        return generated with { Artifact = artifact, Publication = publication };
+        return generated with { Artifact = pipeline.Artifact, Publication = publication };
     }
 
-    private static string Label(RecapType type) => type switch
-    {
-        RecapType.Daily => "du jour",
-        RecapType.Demo => "de démo",
-        RecapType.Test => "de test",
-        _ => type.ToString(),
-    };
+    private sealed record RecapPipeline(IFeedReader FeedReader, IRecapWriter Writer, string Artifact, string Label);
 }

@@ -3,16 +3,8 @@ using EnBref.Infrastructure.Llm;
 
 namespace EnBref.Api.Features.GenerateRecap;
 
-/// <summary>Ce que l'agent de génération reçoit pour écrire un récap.</summary>
-public sealed record GenerationContext(DateOnly Date, IReadOnlyList<string> Headlines);
-
-public sealed record GenerationAgentResult(Recap? Recap, string? Error)
-{
-    public bool IsSuccessful => Recap is not null;
-}
-
 /// <summary>Écrit un récap à partir des titres collectés, en un seul appel au LLM (ADR-007).</summary>
-public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgent> logger)
+public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgent> logger) : IRecapWriter
 {
     public const int MaxSummaryLength = 200;
 
@@ -67,7 +59,7 @@ public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgen
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    public async Task<GenerationAgentResult> WriteAsync(GenerationContext context, CancellationToken cancellationToken)
+    public async Task<RecapWriterResult> WriteAsync(GenerationContext context, CancellationToken cancellationToken)
     {
         var request = new LlmRequest(Prompt, FormatContext(context), OutputSchema);
         var response = await llmClient.SendAsync(request, cancellationToken);
@@ -110,7 +102,7 @@ public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgen
             return Fail($"Récap non conforme : {string.Join(" ; ", violations)}");
         }
 
-        return new GenerationAgentResult(new Recap(context.Date, briefs), Error: null);
+        return new RecapWriterResult(new Recap(context.Date, briefs), Error: null);
     }
 
     private static string FormatContext(GenerationContext context) =>
@@ -141,10 +133,10 @@ public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgen
         }
     }
 
-    private GenerationAgentResult Fail(string error)
+    private RecapWriterResult Fail(string error)
     {
         logger.LogError("Agent de génération en échec : {Error}", error);
-        return new GenerationAgentResult(Recap: null, error);
+        return new RecapWriterResult(Recap: null, error);
     }
 
     // Calqué sur OutputSchema.

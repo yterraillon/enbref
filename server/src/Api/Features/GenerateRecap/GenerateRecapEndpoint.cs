@@ -8,6 +8,7 @@ public static class GenerateRecapEndpoint
     {
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<GenerationAgent>();
+        services.AddSingleton<TestRecapWriter>();
         return services.AddScoped<GenerateRecapHandler>();
     }
 
