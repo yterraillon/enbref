@@ -46,6 +46,31 @@ public class GenerationAgentTests
     }
 
     [Test]
+    public async Task Output_schema_requires_exactly_the_seven_categories()
+    {
+        var llm = StubLlmClient.Completed(Output());
+
+        await Agent(llm).WriteAsync(Context, CancellationToken.None);
+
+        using var schema = JsonDocument.Parse(llm.LastRequest!.OutputSchema!);
+        var properties = schema.RootElement.GetProperty("properties").EnumerateObject().Select(property => property.Name);
+        var required = schema.RootElement.GetProperty("required").EnumerateArray().Select(key => key.GetString());
+        await Assert.That(string.Join(",", properties)).IsEqualTo(string.Join(",", Categories));
+        await Assert.That(string.Join(",", required)).IsEqualTo(string.Join(",", Categories));
+    }
+
+    [Test]
+    public async Task Prompt_names_the_categories_in_the_glossary_order()
+    {
+        var llm = StubLlmClient.Completed(Output());
+
+        await Agent(llm).WriteAsync(Context, CancellationToken.None);
+
+        await Assert.That(llm.LastRequest!.Prompt)
+            .Contains("Politique, International, Économie, Société, Technologies & Science, Sport, Culture.");
+    }
+
+    [Test]
     [Arguments(0)]
     [Arguments(3)]
     public async Task Category_with_a_wrong_number_of_briefs_fails(int count)

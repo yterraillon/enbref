@@ -20,6 +20,22 @@ public enum Category
     Culture,
 }
 
+public static class CategoryLabels
+{
+    /// <summary>Libellé UI de la catégorie (glossaire § 3).</summary>
+    public static string Label(this Category category) => category switch
+    {
+        Category.Politics => "Politique",
+        Category.International => "International",
+        Category.Economy => "Économie",
+        Category.Society => "Société",
+        Category.TechnologyAndScience => "Technologies & Science",
+        Category.Sport => "Sport",
+        Category.Culture => "Culture",
+        _ => throw new ArgumentOutOfRangeException(nameof(category), category, "Catégorie sans libellé."),
+    };
+}
+
 /// <summary>Brève : un titre et un résumé d'une phrase.</summary>
 public sealed record Brief(string Title, string Summary);
 

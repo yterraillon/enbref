@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using EnBref.Infrastructure.Llm;
 
 namespace EnBref.Api.Features.GenerateRecap;
@@ -8,54 +9,52 @@ public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgen
 {
     public const int MaxSummaryLength = 200;
 
-    private const string Prompt = """
+    // L'enum Category est la seule liste des catégories : le prompt, le schéma et la lecture en découlent.
+    private static readonly Category[] Categories = Enum.GetValues<Category>();
+
+    private static readonly string Prompt = $"""
         Tu rédiges le récap quotidien d'EnBref : l'actualité du jour, lisible en deux minutes.
 
         Tu reçois la date et la liste des titres d'articles collectés aujourd'hui dans des flux RSS de
         médias français. Un même sujet repris par plusieurs titres est un sujet important.
 
-        Range l'actualité dans ces sept catégories, toutes obligatoires : Politique, International,
-        Économie, Société, Technologies & Science, Sport, Culture.
+        Range l'actualité dans ces catégories, toutes obligatoires : {string.Join(", ", Categories.Select(category => category.Label()))}.
 
         Pour chaque catégorie, écris une ou deux brèves, jamais plus, sur les sujets les plus importants.
         Chaque brève a :
         - un titre court et factuel ;
-        - un résumé d'une seule phrase, 200 caractères au maximum, qui explique le sujet.
+        - un résumé d'une seule phrase, {MaxSummaryLength} caractères au maximum, qui explique le sujet.
 
         Appuie-toi uniquement sur les titres fournis : n'invente aucun fait. Écris en français, sur un ton
         neutre. Si aucun titre ne relève d'une catégorie, écris une brève sur le sujet le plus proche.
         """;
 
-    private const string OutputSchema = """
+    private static readonly string OutputSchema = new JsonObject
+    {
+        ["type"] = "object",
+        ["properties"] = new JsonObject(Categories.Select(category =>
+            KeyValuePair.Create(Key(category), (JsonNode?)new JsonObject { ["$ref"] = "#/$defs/briefs" }))),
+        ["required"] = new JsonArray([.. Categories.Select(category => (JsonNode?)Key(category))]),
+        ["additionalProperties"] = false,
+        ["$defs"] = new JsonObject
         {
-          "type": "object",
-          "properties": {
-            "politics": { "$ref": "#/$defs/briefs" },
-            "international": { "$ref": "#/$defs/briefs" },
-            "economy": { "$ref": "#/$defs/briefs" },
-            "society": { "$ref": "#/$defs/briefs" },
-            "technologyAndScience": { "$ref": "#/$defs/briefs" },
-            "sport": { "$ref": "#/$defs/briefs" },
-            "culture": { "$ref": "#/$defs/briefs" }
-          },
-          "required": ["politics", "international", "economy", "society", "technologyAndScience", "sport", "culture"],
-          "additionalProperties": false,
-          "$defs": {
-            "briefs": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "title": { "type": "string" },
-                  "summary": { "type": "string" }
+            ["briefs"] = new JsonObject
+            {
+                ["type"] = "array",
+                ["items"] = new JsonObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JsonObject
+                    {
+                        ["title"] = new JsonObject { ["type"] = "string" },
+                        ["summary"] = new JsonObject { ["type"] = "string" },
+                    },
+                    ["required"] = new JsonArray("title", "summary"),
+                    ["additionalProperties"] = false,
                 },
-                "required": ["title", "summary"],
-                "additionalProperties": false
-              }
-            }
-          }
-        }
-        """;
+            },
+        },
+    }.ToJsonString();
 
     private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
 
@@ -69,10 +68,10 @@ public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgen
             return Fail($"LLM {response.Status} : {response.Error}");
         }
 
-        RecapOutput? output;
+        Dictionary<string, List<Brief>?>? output;
         try
         {
-            output = JsonSerializer.Deserialize<RecapOutput>(response.Content, JsonOptions);
+            output = JsonSerializer.Deserialize<Dictionary<string, List<Brief>?>>(response.Content, JsonOptions);
         }
         catch (JsonException exception)
         {
@@ -84,16 +83,11 @@ public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgen
             return Fail("Réponse du LLM vide.");
         }
 
-        var briefs = new Dictionary<Category, IReadOnlyList<Brief>>
-        {
-            [Category.Politics] = output.Politics ?? [],
-            [Category.International] = output.International ?? [],
-            [Category.Economy] = output.Economy ?? [],
-            [Category.Society] = output.Society ?? [],
-            [Category.TechnologyAndScience] = output.TechnologyAndScience ?? [],
-            [Category.Sport] = output.Sport ?? [],
-            [Category.Culture] = output.Culture ?? [],
-        };
+        // Clés lues sans tenir compte de la casse, comme les propriétés des brèves.
+        var briefs = Categories.ToDictionary(
+            category => category,
+            IReadOnlyList<Brief> (category) => output
+                .FirstOrDefault(pair => string.Equals(pair.Key, Key(category), StringComparison.OrdinalIgnoreCase)).Value ?? []);
 
         // L'API n'impose ni le nombre de brèves ni la longueur du résumé : on les vérifie ici.
         var violations = briefs.SelectMany(pair => Violations(pair.Key, pair.Value)).ToList();
@@ -104,6 +98,9 @@ public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgen
 
         return new RecapWriterResult(new Recap(context.Date, briefs), Error: null);
     }
+
+    // Même convention que le contrat publié (RecapContract) : camelCase.
+    private static string Key(Category category) => JsonNamingPolicy.CamelCase.ConvertName(category.ToString());
 
     private static string FormatContext(GenerationContext context) =>
         $"""
@@ -139,13 +136,4 @@ public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgen
         return new RecapWriterResult(Recap: null, error);
     }
 
-    // Calqué sur OutputSchema.
-    private sealed record RecapOutput(
-        List<Brief>? Politics,
-        List<Brief>? International,
-        List<Brief>? Economy,
-        List<Brief>? Society,
-        List<Brief>? TechnologyAndScience,
-        List<Brief>? Sport,
-        List<Brief>? Culture);
 }

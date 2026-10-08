@@ -78,7 +78,7 @@ appelé et l'artefact de publication ; un type `Test` n'appelle jamais le LLM et
 **À ne pas dire** : mode, variante, variant, flavor, cible, target.
 
 ### Artefact
-**Code** : `RecapArtifact`, `Artifact` · **UI** : « Artefact »
+**Code** : `Artifact` · **UI** : « Artefact »
 
 Le fichier publié sur le dépôt de publication pour un type de récap : `latest.json` (récap du
 jour), `demo.json` (récap de démo) ou `test.json` (récap de test). L'artefact découle du type, dans
