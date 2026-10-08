@@ -9,18 +9,22 @@ namespace EnBref.Api.Features.GenerateRecap;
 public sealed record GenerateRecapCommand(RecapType Type, bool Publish);
 
 /// <param name="Recap">Null en cas d'échec de la collecte ou de la génération.</param>
-/// <param name="Error">Cause de l'échec de la génération, après une collecte réussie.</param>
 /// <param name="Artifact">Artefact visé ; null tant que la publication n'est pas tentée.</param>
 /// <param name="Publication">Null si la publication n'est pas demandée ou pas atteinte.</param>
+/// <param name="Failure">Null si la génération a réussi.</param>
 public sealed record GenerateRecapResult(
     CollectionResult Collection,
-    Recap? Recap,
-    string? Error,
+    Recap? Recap = null,
     string? Artifact = null,
-    PublicationResult? Publication = null)
+    PublicationResult? Publication = null,
+    GenerateRecapFailure? Failure = null)
 {
-    public bool IsSuccessful => Collection.IsSuccessful && Error is null && Publication?.IsSuccessful != false;
+    public bool IsSuccessful => Failure is null;
 }
+
+/// <param name="Step">Étape en échec.</param>
+/// <param name="Message">Cause lisible, renvoyée telle quelle par l'endpoint.</param>
+public sealed record GenerateRecapFailure(GenerationStep Step, string Message);
 
 public sealed class GenerateRecapHandler(
     CollectHeadlinesHandler collectHeadlines,
@@ -39,9 +43,7 @@ public sealed class GenerateRecapHandler(
         var collection = await collectHeadlines.HandleAsync(pipeline.FeedReader, cancellationToken);
         if (!collection.IsSuccessful)
         {
-            // TODO ntfy : génération impossible.
-            logger.LogError("Génération {Type} impossible : aucun titre collecté.", command.Type);
-            return new GenerateRecapResult(collection, Recap: null, Error: null);
+            return Fail(command.Type, new GenerateRecapResult(collection), GenerationStep.Collection, "Aucun titre collecté.");
         }
 
         if (collection.IsDegraded)
@@ -55,13 +57,11 @@ public sealed class GenerateRecapHandler(
         var written = await pipeline.Writer.WriteAsync(new GenerationContext(date, collection.Headlines), cancellationToken);
         if (written.Recap is not { } recap)
         {
-            // TODO ntfy : génération impossible.
-            logger.LogError("Génération {Type} impossible : {Error}", command.Type, written.Error);
-            return new GenerateRecapResult(collection, Recap: null, written.Error);
+            return Fail(command.Type, new GenerateRecapResult(collection), GenerationStep.Generation, $"Génération impossible : {written.Error}");
         }
 
-        var generated = new GenerateRecapResult(collection, recap, Error: null);
-        return command.Publish ? await PublishAsync(pipeline, generated, recap, cancellationToken) : generated;
+        var generated = new GenerateRecapResult(collection, recap);
+        return command.Publish ? await PublishAsync(command.Type, pipeline, generated, recap, cancellationToken) : generated;
     }
 
     // Seul endroit où le type de récap est lu, et seul endroit qui nomme un artefact publié. L'artefact
@@ -75,17 +75,22 @@ public sealed class GenerateRecapHandler(
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Type de récap sans pipeline."),
     };
 
-    private async Task<GenerateRecapResult> PublishAsync(RecapPipeline pipeline, GenerateRecapResult generated, Recap recap, CancellationToken cancellationToken)
+    private async Task<GenerateRecapResult> PublishAsync(RecapType type, RecapPipeline pipeline, GenerateRecapResult generated, Recap recap, CancellationToken cancellationToken)
     {
         var publication = await publicationRepository.PublishAsync(pipeline.Artifact, RecapContract.Serialize(recap),
             $"Publication du récap {pipeline.Label} du {recap.Date:yyyy-MM-dd}", cancellationToken);
-        if (!publication.IsSuccessful)
-        {
-            // TODO ntfy : publication impossible.
-            logger.LogError("Publication sur {Artifact} impossible : {Error}", pipeline.Artifact, publication.Error);
-        }
+        var published = generated with { Artifact = pipeline.Artifact, Publication = publication };
 
-        return generated with { Artifact = pipeline.Artifact, Publication = publication };
+        return publication.IsSuccessful
+            ? published
+            : Fail(type, published, GenerationStep.Publication, $"Publication sur {pipeline.Artifact} impossible : {publication.Error}");
+    }
+
+    private GenerateRecapResult Fail(RecapType type, GenerateRecapResult result, GenerationStep step, string message)
+    {
+        // TODO ntfy : génération en échec.
+        logger.LogError("Génération {Type} en échec à l'étape {Step} : {Message}", type, step, message);
+        return result with { Failure = new GenerateRecapFailure(step, message) };
     }
 
     private sealed record RecapPipeline(IFeedReader FeedReader, IRecapWriter Writer, string Artifact, string Label);

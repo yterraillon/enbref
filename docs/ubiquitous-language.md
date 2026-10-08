@@ -181,6 +181,14 @@ exception assumée, la valeur `Available` (« exploitable »), choisie parce qu'
 
 ## 5. Les traitements
 
+### Étape
+**Code** : `GenerationStep` (`Collection`, `Generation`, `Publication`) · **UI** : « Étape »
+
+L'une des trois étapes qu'enchaîne une génération : collecte, génération, publication. Une
+génération en échec désigne l'étape qui a échoué.
+
+**À ne pas dire** : phase, stage, stade.
+
 ### Collecte
 **Code** : `Collection` · **UI** : « Collecte »
 
@@ -296,6 +304,7 @@ budget de lecture est la contrainte, le plafond de caractères n'en est que la t
 | canal, stream, abonnement | Flux |
 | éditeur, média, publisher | Source |
 | titre (seul), item brut | Titre collecté |
+| phase, stage, stade | Étape |
 | scraping, ingestion, crawl | Collecte |
 | push, upload, déploiement | Publication |
 | fichier, export, snapshot (d'un récap publié) | Artefact |
@@ -328,6 +337,12 @@ Absents du code à ce stade : l'historique, les
 **crédits** et la **disponibilité**. Le back-office n'est qu'une coquille.
 
 ### Autres écarts
+
+- **« Génération » a deux sens** — l'étape qui transforme les titres collectés en récap (§ 5), et
+  l'enchaînement complet collecte → génération → publication (`GenerateRecap`,
+  `/api/recaps/generations`, « une publication en échec fait échouer la génération »). Le second
+  sens est le bon ; l'étape sera renommée, d'où `GenerationStep.Generation` en attendant. Le nouveau
+  terme est à définir ici avant d'être implémenté.
 
 - **`.claude/CLAUDE.md` § Project Overview** — employait « récap de test » pour désigner le **récap
   de démo** (§ 2) ; corrigé. « Le récap du jour non caché » désigne un affichage back-office qui

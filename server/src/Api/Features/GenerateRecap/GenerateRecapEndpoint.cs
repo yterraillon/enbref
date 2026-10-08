@@ -25,7 +25,7 @@ public static class GenerateRecapEndpoint
 
                 return result.IsSuccessful
                     ? Results.Ok(response)
-                    : Results.Problem(Failure(result),
+                    : Results.Problem(result.Failure!.Message,
                         statusCode: StatusCodes.Status502BadGateway,
                         extensions: new Dictionary<string, object?> { ["feeds"] = response.Feeds });
             })
@@ -34,13 +34,6 @@ public static class GenerateRecapEndpoint
 
         return endpoints;
     }
-
-    private static string Failure(GenerateRecapResult result) => result switch
-    {
-        { Collection.IsSuccessful: false } => "Aucun titre collecté.",
-        { Error: { } error } => $"Génération impossible : {error}",
-        _ => $"Publication sur {result.Artifact} impossible : {result.Publication?.Error}",
-    };
 }
 
 public sealed record GenerateRecapResponse(

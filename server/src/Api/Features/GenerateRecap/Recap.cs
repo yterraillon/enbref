@@ -20,6 +20,14 @@ public enum Category
     Culture,
 }
 
+/// <summary>Étape d'une génération — voir docs/ubiquitous-language.md.</summary>
+public enum GenerationStep
+{
+    Collection,
+    Generation,
+    Publication,
+}
+
 public static class CategoryLabels
 {
     /// <summary>Libellé UI de la catégorie (glossaire § 3).</summary>

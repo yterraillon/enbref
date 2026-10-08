@@ -43,6 +43,7 @@ public class GenerateRecapHandlerTests
         var result = await handler.HandleAsync(new GenerateRecapCommand(RecapType.Daily, Publish: false), CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsFalse();
+        await Assert.That(result.Failure!.Step).IsEqualTo(GenerationStep.Collection);
     }
 
     [Test]
@@ -67,7 +68,8 @@ public class GenerateRecapHandlerTests
         var result = await handler.HandleAsync(new GenerateRecapCommand(RecapType.Daily, Publish: false), CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsFalse();
-        await Assert.That(result.Error).IsNotNull();
+        await Assert.That(result.Failure!.Step).IsEqualTo(GenerationStep.Generation);
+        await Assert.That(result.Failure.Message).Contains("surcharge");
     }
 
     [Test]
@@ -143,6 +145,8 @@ public class GenerateRecapHandlerTests
         var result = await handler.HandleAsync(new GenerateRecapCommand(RecapType.Daily, Publish: true), CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsFalse();
+        await Assert.That(result.Failure!.Step).IsEqualTo(GenerationStep.Publication);
+        await Assert.That(result.Failure.Message).Contains("GitHub 422");
         await Assert.That(result.Recap).IsNotNull();
     }
 }
