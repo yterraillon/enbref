@@ -83,7 +83,9 @@ Trois notions distinctes — ne pas les confondre, le glossaire les sépare expl
 | **Récap de démo** | `demo.json` | À la demande, puis figé et relu | Revue App Store, test de chargement |
 | **Récap de test** | `test.json` | À la demande, fausse source, sans LLM | CI, vérification de la publication |
 
-Le rôle de chacun est détaillé dans `docs/recaps.md`. Aucun n'est encore publié par le code.
+Le rôle de chacun est détaillé dans `docs/recaps.md`. Les trois sont publiés par
+`POST /api/recaps/generations` (`publish: true`) ; le job de 17 h n'existe pas encore. Forme JSON :
+ADR-008.
 
 ## Stack Docker locale
 

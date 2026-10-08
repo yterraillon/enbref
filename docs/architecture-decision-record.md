@@ -244,3 +244,53 @@ l'écriture sur le dépôt de publication et la mise à disposition sur le CDN.
   n'atteint ni `latest.json` ni `demo.json` repose entièrement sur le code et doit être testée.
 - L'abstraction LLM n'a plus deux implémentations à servir ; elle reste justifiée par les stubs de
   test et par la couche d'inférence prévue.
+
+---
+
+## ADR-008 — Forme JSON du contrat publié
+
+**Date :** 2026-10-08 · **Statut :** Accepté
+
+### Contexte
+
+Le glossaire (§ 7) fixe la structure d'un récap — sept catégories ordonnées, une à deux brèves,
+un titre et un résumé — mais pas sa sérialisation. L'ancien serveur publiait une autre forme
+(`title`, `sections`) sur `latest-recap.json` ; l'application iOS n'étant pas encore sortie, aucun
+client publié ne le lit. La
+publication de `latest.json`, `demo.json` et `test.json` impose de figer les noms de champs avant
+qu'un client ne les lise.
+
+### Décision
+
+Les trois artefacts suivent la même forme :
+
+```json
+{
+  "date": "2026-10-08",
+  "categories": [
+    { "category": "politics", "briefs": [ { "title": "…", "summary": "…" } ] },
+    { "category": "international", "briefs": [ … ] }
+  ]
+}
+```
+
+- `date` : date ISO `yyyy-MM-dd` du récap.
+- `categories` : **tableau** des sept catégories, toujours présentes, dans l'ordre du glossaire.
+  Un tableau plutôt qu'un objet par catégorie : l'ordre voyage avec le JSON, le client n'a pas à
+  le reconstituer.
+- `category` : identifiant de code en camelCase (`politics` … `culture`). Le libellé affiché
+  (« Économie ») reste du ressort du client.
+- `briefs[].title`, `briefs[].summary` : titre et résumé de la brève.
+
+`latest-recap.json` n'est pas touché par le serveur reconstruit. L'application iOS lira
+`latest.json` dès sa première version publiée.
+
+### Conséquences
+
+- Un client Swift décode le récap avec un `Codable` direct, sans dictionnaire à réordonner.
+- `demo.json` et `test.json` servent de test de chargement du même contrat.
+- **Coût :** les libellés FR des catégories sont dupliqués dans chaque client.
+- **Coût :** `latest-recap.json` reste sur le CDN, alimenté par myfanwy jusqu'à son retrait, puis
+  figé ; il est à supprimer à la main.
+- **Coût :** un champ ajouté plus tard (source, horodatage de génération) reste une évolution du
+  contrat, donc un nouvel ADR.

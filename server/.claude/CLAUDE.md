@@ -14,12 +14,14 @@ src/
 ├── Api/                     racine de composition : Program.cs, DI
 │   ├── Features/
 │   │   ├── CollectHeadlines/ collecte, appelée en mémoire (génération, back-office)
-│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler, Command, GenerationAgent (prompt + validation)
+│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler, Command, GenerationAgent (prompt + validation),
+│   │                        RecapArtifact (type → artefact), RecapContract (JSON publié, ADR-008), TestRecap
 │   ├── Shared/              uniquement ce qui sert à plusieurs slices
 │   └── BackOffice/          Blazor Server, servi sous /back-office
 └── Infrastructure/          implémentations des dépendances sortantes
     ├── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
-    └── Llm/                 ILlmClient : AnthropicLlmClient (erreurs SDK → LlmStatus)
+    ├── Llm/                 ILlmClient : AnthropicLlmClient (erreurs SDK → LlmStatus)
+    └── Publication/         IPublicationRepository : GithubPublicationRepository (API Contents GitHub, erreurs → PublicationResult)
 ```
 
 **Pas de MediatR.** Les handlers sont des classes ordinaires, injectées et appelées directement par
@@ -96,7 +98,7 @@ Clés lues dans le Secret Manager en développement et dans les variables d'envi
 
 | Clé | Rôle |
 |---|---|
-| `GithubToken` | publication — **vide en local**, sinon on écrase la production |
+| `GithubToken` | publication — **vide en local**, sinon on écrase la production ; absent → publication en échec (502) |
 | `Anthropic:ApiKey` | API Claude — user secrets en local, `Anthropic__ApiKey` en production |
 | `Anthropic:Model` | modèle Claude — `claude-haiku-4-5` en Development, `claude-opus-5-5` sinon |
 

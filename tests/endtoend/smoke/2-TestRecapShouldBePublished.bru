@@ -22,6 +22,10 @@ script:pre-request {
 assert {
   res.status: eq 200
   res.body: isJson
+  res.body.date: isString
+  res.body.categories: isArray
+  res.body.categories.length: eq 7
+  res.body.categories[0].category: eq politics
 }
 
 tests {
@@ -34,5 +38,5 @@ tests {
 
 docs {
   Vérifie sur le CDN que test.json a été republié après la génération de l'étape 1.
-  La forme du récap sera vérifiée quand le contrat sera implémenté (étape 2).
+  Vérifie aussi la forme du contrat publié (ADR-008).
 }

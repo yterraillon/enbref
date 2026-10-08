@@ -24,7 +24,7 @@ public static class GenerateRecapEndpoint
 
                 return result.IsSuccessful
                     ? Results.Ok(response)
-                    : Results.Problem(result.Error is null ? "Aucun titre collecté." : $"Génération impossible : {result.Error}",
+                    : Results.Problem(Failure(result),
                         statusCode: StatusCodes.Status502BadGateway,
                         extensions: new Dictionary<string, object?> { ["feeds"] = response.Feeds });
             })
@@ -33,12 +33,21 @@ public static class GenerateRecapEndpoint
 
         return endpoints;
     }
+
+    private static string Failure(GenerateRecapResult result) => result switch
+    {
+        { Collection.IsSuccessful: false } => "Aucun titre collecté.",
+        { Error: { } error } => $"Génération impossible : {error}",
+        _ => $"Publication sur {result.Artifact} impossible : {result.Publication?.Error}",
+    };
 }
 
 public sealed record GenerateRecapResponse(
     int HeadlineCount,
     IReadOnlyList<GenerateRecapResponse.FeedSummary> Feeds,
-    Recap? Recap)
+    Recap? Recap,
+    string? Artifact,
+    Uri? CommitUrl)
 {
     public sealed record FeedSummary(string Source, string Status, int HeadlineCount, string? Error);
 
@@ -47,5 +56,7 @@ public sealed record GenerateRecapResponse(
         result.Collection.Feeds
             .Select(feed => new FeedSummary(feed.Feed.Source, feed.Status.ToString(), feed.Headlines.Count, feed.Error))
             .ToList(),
-        result.Recap);
+        result.Recap,
+        result.Artifact,
+        result.Publication?.CommitUrl);
 }

@@ -77,6 +77,16 @@ appelé et l'artefact de publication ; un type `Test` n'appelle jamais le LLM et
 
 **À ne pas dire** : mode, variante, variant, flavor, cible, target.
 
+### Artefact
+**Code** : `RecapArtifact`, `Artifact` · **UI** : « Artefact »
+
+Le fichier publié sur le dépôt de publication pour un type de récap : `latest.json` (récap du
+jour), `demo.json` (récap de démo) ou `test.json` (récap de test). L'artefact découle du type, dans
+le code, jamais d'un paramètre d'appel ni de la configuration (ADR-007). Sa forme JSON est fixée par
+ADR-008.
+
+**À ne pas dire** : fichier, export, snapshot, dump.
+
 ---
 
 ## 3. Le contenu d'un récap
@@ -202,7 +212,18 @@ collecte puis génération à 17 h ; en cas d'échec, trois tentatives avant ale
 L'étape qui dépose un récap sur le dépôt de publication, sous `latest.json`, `demo.json` ou
 `test.json` selon le type de récap, via l'API GitHub.
 
-**À ne pas dire** : déploiement, push, upload, export.
+Le dépôt de publication est abstrait dans le code par `IPublicationRepository`.
+
+**À ne pas dire** : déploiement, push, upload, export. « Publisher » et « publieur » sont réservés :
+le premier désigne une source (§ 4), le second n'est plus employé.
+
+### Résultat de publication
+**Code** : `PublicationResult` · **UI** : « Résultat de publication »
+
+Ce que constate la publication d'un récap : le commit qui porte l'artefact publié, ou la cause de
+l'échec. Une publication en échec fait échouer la génération qui l'a demandée.
+
+**À ne pas dire** : résultat de push, résultat d'upload, rapport de publication.
 
 ### Historique
 **Code** : `History` · **UI** : « Historique »
@@ -276,6 +297,9 @@ budget de lecture est la contrainte, le plafond de caractères n'en est que la t
 | éditeur, média, publisher | Source |
 | titre (seul), item brut | Titre collecté |
 | scraping, ingestion, crawl | Collecte |
+| push, upload, déploiement | Publication |
+| fichier, export, snapshot (d'un récap publié) | Artefact |
+| publieur, publisher (pour le dépôt de publication) | Dépôt de publication (`IPublicationRepository`) |
 | admin, console, dashboard | Back-office |
 | quota, solde, tokens | Crédits |
 | statut, santé, health, uptime | Disponibilité |
@@ -300,7 +324,7 @@ clients et le test Bruno quotidien.
 | `sections` (titre + texte libre) | `Category` portant des `Brief` | Pas de catégories fixes ni de brèves dans l'artefact publié. |
 | `title` (« Récap du … ») | — | Un récap n'a pas de titre au glossaire ; le champ est asserté par le test Bruno quotidien. |
 
-Absents du code à ce stade : la génération, la publication, l'historique, les
+Absents du code à ce stade : l'historique, les
 **crédits** et la **disponibilité**. Le back-office n'est qu'une coquille.
 
 ### Autres écarts

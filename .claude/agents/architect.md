@@ -158,7 +158,7 @@ l'existant ». Le corpus est explicite : `server/.claude/CLAUDE.md` § « Lire c
 quoi que ce soit ».
 
 Contrôle aussi la **justification des abstractions**. Trois seulement sont actées : lecture RSS,
-agent LLM, publieur. Une interface nouvelle en dehors de ces trois est une **réserve** : demande
+agent LLM, dépôt de publication (`IPublicationRepository`). Une interface nouvelle en dehors de ces trois est une **réserve** : demande
 quel est le deuxième appelant qui la réclame. En particulier, un `IRepository<T>` sur LiteDB est
 explicitement écarté par le corpus.
 

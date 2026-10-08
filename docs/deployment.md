@@ -26,7 +26,7 @@ d'environnement comme `$(Version)` et la restauration échouerait.
 
 Le smoke test de PR génère et publie le **récap de test** sur `test.json` (ADR-007) : il lit le
 secret `ENBREF_GITHUB_TOKEN`, mais n'appelle pas le LLM et n'a donc besoin d'aucune clé Anthropic.
-Tant que la publication n'est pas implémentée, le job est en `continue-on-error`.
+Le job reste en `continue-on-error` jusqu'à un premier run vert de la publication.
 
 Le test quotidien du récap publié (`e2e-recap-publication.yml`) a été retiré ; la collection
 `tests/endtoend/enbref/` reste lançable à la main.
@@ -65,9 +65,19 @@ Mise à jour : relever le tag CalVer dans le compose, puis redéployer la stack.
 ## Publication du récap
 
 Le récap n'est pas servi par le serveur : il est **publié** sur
-`yterraillon/yterraillon.github.io`, sous `cdn/en-bref/data/latest-recap.json`, et les clients le
-lisent là. Le serveur n'a donc pas besoin d'être joignable depuis l'extérieur pour que le récap soit
-consultable.
+`yterraillon/yterraillon.github.io` par l'API GitHub (`Infrastructure/Publication/GithubPublicationRepository`),
+sous `cdn/en-bref/data/`, et les clients le lisent là. Le serveur n'a donc pas besoin d'être
+joignable depuis l'extérieur pour que le récap soit consultable.
+
+| Type de récap | Artefact |
+|---|---|
+| Récap du jour | `latest.json` |
+| Récap de démo | `demo.json` |
+| Récap de test | `test.json` |
+
+Forme JSON : ADR-008. Sans `GithubToken`, la publication échoue (502) sans rien appeler.
+`latest-recap.json`, publié par l'ancien serveur, n'est plus mis à jour par le serveur reconstruit.
+Aucun client publié ne le lit : l'application iOS n'est pas encore sortie.
 
 Le test Bruno `tests/endtoend/enbref/` vérifie que l'artefact publié est bien daté du jour. Il n'est
 plus planifié (voir § CI/CD).
@@ -75,8 +85,10 @@ plus planifié (voir § CI/CD).
 ## Migration depuis myfanwy
 
 EnBref tournait dans le conteneur `myfanwy` (`ghcr.io/yterraillon/myfanwy`), sur le même NAS. Pendant
-la transition, les deux applications embarquent le job de 17:00 et publieraient **toutes deux** sur
-`latest-recap.json`.
+la transition, les deux applications embarquent le job de 17:00 : myfanwy publie
+`latest-recap.json` (ancienne forme), enbref publie `latest.json` (ADR-008). Les deux artefacts ne
+se marchent pas dessus, et aucun client publié ne lit l'un ou l'autre : l'ordre de bascule n'a pas
+de contrainte de compatibilité.
 
 Ordre de bascule :
 

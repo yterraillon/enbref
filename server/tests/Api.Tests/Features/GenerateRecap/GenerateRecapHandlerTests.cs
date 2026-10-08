@@ -3,6 +3,7 @@ using EnBref.Api.Shared;
 using EnBref.Api.Tests.Features.CollectHeadlines;
 using EnBref.Infrastructure.Collection;
 using EnBref.Infrastructure.Llm;
+using EnBref.Infrastructure.Publication;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace EnBref.Api.Tests.Features.GenerateRecap;
@@ -11,9 +12,10 @@ public class GenerateRecapHandlerTests
 {
     private static readonly Feed Feed = new("Source", new Uri("https://source.test/rss"));
 
-    private static GenerateRecapHandler Handler(IFeedReader rss, IFeedReader fake, StubLlmClient? llm = null) =>
+    private static GenerateRecapHandler Handler(IFeedReader rss, IFeedReader fake, StubLlmClient? llm = null, StubPublicationRepository? publicationRepository = null) =>
         new(CollectHeadlinesHandlerTests.Handler(rss, fake, Feed),
             new GenerationAgent(llm ?? StubLlmClient.Completed(GenerationAgentTests.Output()), NullLogger<GenerationAgent>.Instance),
+            publicationRepository ?? StubPublicationRepository.Succeeding(),
             TimeProvider.System,
             NullLogger<GenerateRecapHandler>.Instance);
 
@@ -88,6 +90,57 @@ public class GenerateRecapHandlerTests
 
         await Assert.That(llm.Calls).IsEqualTo(0);
         await Assert.That(result.IsSuccessful).IsTrue();
-        await Assert.That(result.Recap).IsNull();
+        await Assert.That(result.Recap!.Briefs.Keys).IsEquivalentTo(Enum.GetValues<Category>());
+    }
+
+    [Test]
+    [Arguments(RecapType.Daily, "latest.json")]
+    [Arguments(RecapType.Demo, "demo.json")]
+    [Arguments(RecapType.Test, "test.json")]
+    public async Task Each_recap_type_is_published_on_its_own_artifact_only(RecapType type, string expectedArtifact)
+    {
+        var publicationRepository = StubPublicationRepository.Succeeding();
+        var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"), publicationRepository: publicationRepository);
+
+        var result = await handler.HandleAsync(new GenerateRecapCommand(type, Publish: true), CancellationToken.None);
+
+        await Assert.That(result.IsSuccessful).IsTrue();
+        await Assert.That(publicationRepository.Publications.Select(publication => publication.Artifact)).IsEquivalentTo([expectedArtifact]);
+    }
+
+    [Test]
+    public async Task Unpublished_generation_does_not_call_the_publication_repository()
+    {
+        var publicationRepository = StubPublicationRepository.Succeeding();
+        var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"), publicationRepository: publicationRepository);
+
+        var result = await handler.HandleAsync(new GenerateRecapCommand(RecapType.Daily, Publish: false), CancellationToken.None);
+
+        await Assert.That(publicationRepository.Publications).IsEmpty();
+        await Assert.That(result.Publication).IsNull();
+    }
+
+    [Test]
+    public async Task Failed_agent_publishes_nothing()
+    {
+        var llm = new StubLlmClient(new LlmResponse(LlmStatus.Unavailable, "", "surcharge"));
+        var publicationRepository = StubPublicationRepository.Succeeding();
+        var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"), llm, publicationRepository);
+
+        await handler.HandleAsync(new GenerateRecapCommand(RecapType.Daily, Publish: true), CancellationToken.None);
+
+        await Assert.That(publicationRepository.Publications).IsEmpty();
+    }
+
+    [Test]
+    public async Task Failed_publication_fails_the_generation()
+    {
+        var publicationRepository = new StubPublicationRepository(new PublicationResult(CommitUrl: null, "GitHub 422"));
+        var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"), publicationRepository: publicationRepository);
+
+        var result = await handler.HandleAsync(new GenerateRecapCommand(RecapType.Daily, Publish: true), CancellationToken.None);
+
+        await Assert.That(result.IsSuccessful).IsFalse();
+        await Assert.That(result.Recap).IsNotNull();
     }
 }
