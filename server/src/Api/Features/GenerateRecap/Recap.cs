@@ -1,5 +1,13 @@
 namespace EnBref.Api.Features.GenerateRecap;
 
+/// <summary>Type de récap — voir docs/ubiquitous-language.md.</summary>
+public enum RecapType
+{
+    Daily,
+    Demo,
+    Test,
+}
+
 /// <summary>Catégorie — liste fixe, fermée, dans l'ordre du glossaire (docs/ubiquitous-language.md § 3).</summary>
 public enum Category
 {

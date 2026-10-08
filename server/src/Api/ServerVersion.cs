@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace EnBref.Api.Shared;
+namespace EnBref.Api;
 
 /// <summary>Version CalVer de l'image (ADR-004), injectée au build ; « dev » hors image.</summary>
 public static class ServerVersion

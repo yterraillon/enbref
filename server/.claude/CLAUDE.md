@@ -11,13 +11,12 @@ fonctionnalité = **un dossier**, contenant son endpoint, son handler, ses modè
 
 ```
 src/
-├── Api/                     racine de composition : Program.cs, DI
+├── Api/                     racine de composition : Program.cs, DI, ServerVersion (/health, back-office)
 │   ├── Features/
 │   │   ├── CollectHeadlines/ collecte, appelée en mémoire (génération, back-office)
-│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler, Command, GenerationAgent (prompt + validation),
-│   │                        RecapArtifact (type → artefact), RecapContract (JSON publié, ADR-008),
-│   │                        IRecapWriter (GenerationAgent, TestRecapWriter), Handler (type → pipeline)
-│   ├── Shared/              uniquement ce qui sert à plusieurs slices
+│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler (+ Command, Result ; type → pipeline et artefact),
+│   │                        Recap (modèle, RecapType), RecapContract (JSON publié, ADR-008),
+│   │                        IRecapWriter (GenerationAgent : prompt + validation, TestRecapWriter)
 │   └── BackOffice/          Blazor Server, servi sous /back-office
 └── Infrastructure/          implémentations des dépendances sortantes
     ├── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
@@ -50,7 +49,8 @@ Trois dépendances sortantes doivent rester derrière un contrat, chacune pour u
 cas où » ajoute de l'indirection sans bénéfice.
 
 Règle générale : une abstraction devient partagée quand un **deuxième** appelant la réclame, pas
-avant. `Shared/` n'est pas un endroit où ranger les choses par défaut.
+avant. `Api/Shared/` n'existe pas tant qu'aucun type ne sert à deux slices : on le crée à ce
+moment-là, et ce n'est pas un endroit où ranger les choses par défaut.
 
 ## Ce qui est interdit
 
