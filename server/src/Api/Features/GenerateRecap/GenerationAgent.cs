@@ -8,7 +8,11 @@ namespace EnBref.Api.Features.GenerateRecap;
 /// <summary>Écrit un récap à partir des titres collectés, en un seul appel au LLM (ADR-007).</summary>
 public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgent> logger) : IRecapWriter
 {
-    public const int MaxSummaryLength = 200;
+    /// <summary>Longueur de résumé demandée au LLM (glossaire § 3).</summary>
+    public const int TargetSummaryLength = 200;
+
+    /// <summary>Plafond validé : une marge au-delà de la cible, le LLM ne la tenant pas au caractère près.</summary>
+    public const int MaxSummaryLength = 300;
 
     // L'enum Category est la seule liste des catégories : le prompt, le schéma et la lecture en découlent.
     private static readonly Category[] Categories = Enum.GetValues<Category>();
@@ -24,7 +28,7 @@ public sealed class GenerationAgent(ILlmClient llmClient, ILogger<GenerationAgen
         Pour chaque catégorie, écris une ou deux brèves, jamais plus, sur les sujets les plus importants.
         Chaque brève a :
         - un titre court et factuel ;
-        - un résumé d'une seule phrase, {MaxSummaryLength} caractères au maximum, qui explique le sujet.
+        - un résumé d'une seule phrase, {TargetSummaryLength} caractères au maximum, qui explique le sujet.
 
         Appuie-toi uniquement sur les titres fournis : n'invente aucun fait. Écris en français, sur un ton
         neutre. Si aucun titre ne relève d'une catégorie, écris une brève sur le sujet le plus proche.

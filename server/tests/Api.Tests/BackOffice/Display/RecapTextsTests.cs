@@ -60,6 +60,33 @@ public class RecapTextsTests
     }
 
     [Test]
+    public async Task No_readable_recap_names_every_artifact()
+    {
+        await Assert.That(RecapTexts.NoReadableRecap()).IsEqualTo(
+            "Aucun récap publié n’a pu être lu : latest.json, demo.json, test.json sont absents ou illisibles.");
+    }
+
+    [Test]
+    [Arguments(true, "Démarrée")]
+    [Arguments(false, "Arrêtée")]
+    public async Task Daily_generation_state(bool isStarted, string expected)
+    {
+        await Assert.That(RecapTexts.DailyGeneration(isStarted)).IsEqualTo(expected);
+    }
+
+    [Test]
+    [Arguments(RecapType.Daily)]
+    [Arguments(RecapType.Demo)]
+    [Arguments(RecapType.Test)]
+    public async Task Texts_never_call_an_artifact_a_file(RecapType type)
+    {
+        var missing = new ReadPublishedRecapResult(type.Artifact(), null, null, "Artefact absent.", IsMissing: true);
+
+        await Assert.That(RecapTexts.Daily(missing)).DoesNotContain("fichier");
+        await Assert.That(RecapTexts.EmptyBody(type)).DoesNotContain("fichier");
+    }
+
+    [Test]
     [Arguments(RecapType.Daily)]
     [Arguments(RecapType.Demo)]
     [Arguments(RecapType.Test)]

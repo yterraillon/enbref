@@ -95,6 +95,16 @@ public class GenerationAgentTests
     }
 
     [Test]
+    public async Task Summary_between_target_and_limit_passes()
+    {
+        var output = Output(summary: new string('a', (GenerationAgent.TargetSummaryLength + GenerationAgent.MaxSummaryLength) / 2));
+
+        var result = await Agent(StubLlmClient.Completed(output)).WriteAsync(Context, CancellationToken.None);
+
+        await Assert.That(result.IsSuccessful).IsTrue();
+    }
+
+    [Test]
     public async Task Summary_over_the_limit_fails()
     {
         var output = Output(summary: new string('a', GenerationAgent.MaxSummaryLength + 1));

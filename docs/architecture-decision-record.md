@@ -318,8 +318,7 @@ pas `design-system/`. Copier les fichiers dans `server/` créerait une seconde s
   (cible `CopyDesignSystem`), dossier ignoré par git : `design-system/` reste la seule source. Ils
   sont servis par `MapStaticAssets`, avec empreinte et compression. Un simple lien (`Content` avec
   `Link`) ne suffit pas : le serveur de développement ne sert que des fichiers présents sous
-  `wwwroot/`, et les servait vides. `server/src/Api/wwwroot/` doit exister physiquement (il porte `back-office.css`) :
-  sans lui, l'hôte ne démarre pas, le manifeste des assets liés y pointant.
+  `wwwroot/`, et les servait vides.
 - Les workflows serveur se déclenchent aussi sur `design-system/**`.
 
 ### Conséquences

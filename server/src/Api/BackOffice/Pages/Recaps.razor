@@ -17,7 +17,7 @@
                 @foreach (var recapType in Enum.GetValues<RecapType>())
                 {
                     <ListRow IsPressed="recapType == type" OnClick="() => Select(recapType)">
-                        <Title><span style="font-weight: 600">@recapType.Label()</span></Title>
+                        <Title><span class="headline">@recapType.Label()</span></Title>
                         <Subtitle>@recapType.Artifact()</Subtitle>
                         <Trailing>
                             @if (Read(recapType) is { } read)
@@ -63,24 +63,20 @@
                     break;
                 case { Recap: { } recap }:
                     <Card Class="bo-card--flush bo-categories" Label="Contenu du récap">
-                        @foreach (var category in Enum.GetValues<Category>())
+                        @foreach (var (category, briefs) in RecapCounts.CategoriesWithBriefs(recap))
                         {
-                            var briefs = recap.Briefs.GetValueOrDefault(category) ?? [];
-                            if (briefs.Count > 0)
-                            {
-                                <div class="bo-category">
-                                    <h3 class="eyebrow">@category.Label()</h3>
-                                    <div class="bo-briefs">
-                                        @foreach (var brief in briefs)
-                                        {
-                                            <article>
-                                                <div class="article-title-m bo-brief-title">@brief.Title</div>
-                                                <div class="article-body-m bo-brief-summary">@brief.Summary</div>
-                                            </article>
-                                        }
-                                    </div>
+                            <div class="bo-category">
+                                <h3 class="eyebrow">@category.Label()</h3>
+                                <div class="bo-briefs">
+                                    @foreach (var brief in briefs)
+                                    {
+                                        <article>
+                                            <div class="article-title-m bo-brief-title">@brief.Title</div>
+                                            <div class="article-body-m bo-brief-summary">@brief.Summary</div>
+                                        </article>
+                                    }
                                 </div>
-                            }
+                            </div>
                         }
                     </Card>
                     break;

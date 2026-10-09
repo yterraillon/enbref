@@ -121,8 +121,9 @@ n'est jamais affichée.
 ### Résumé
 **Code** : `Brief.Summary` · **UI** : « Résumé »
 
-Le corps d'une brève : **une phrase** qui explique le sujet annoncé par le titre. Plafonné à
-**200 caractères** — voir le budget de lecture (§ 7).
+Le corps d'une brève : **une phrase** qui explique le sujet annoncé par le titre. Visé à
+**200 caractères** (la longueur demandée au LLM), toléré jusqu'à **300** — voir le budget de lecture
+(§ 7).
 
 **À ne pas dire** : description, contenu, texte, body, synthèse.
 
@@ -299,13 +300,17 @@ Récap                                   1 par jour, identifié par sa date
 └── Catégorie × 7                       liste fixe, fermée, ordonnée (§ 3)
     └── Brève × 1 à 2                   soit 7 à 14 brèves par récap
         ├── Titre                       intitulé rédigé par le LLM
-        └── Résumé                      une phrase, ≤ 200 caractères
+        └── Résumé                      une phrase, visée à 200 caractères, ≤ 300
 ```
 
 **Le récap se lit en deux minutes au maximum.** À 220 mots par minute, cela donne environ 440 mots
 pour quatorze brèves, soit une trentaine de mots par brève. D'où le plafond de 200 caractères sur le
 résumé. Si une évolution assouplit l'une de ces bornes, l'autre doit être revue en conséquence — le
 budget de lecture est la contrainte, le plafond de caractères n'en est que la traduction.
+
+La tolérance à 300 caractères assouplit ce plafond : dans le pire cas (quatorze brèves à 300
+caractères), le récap dépasse les deux minutes. Le budget reste tenu en pratique parce que la cible
+demandée au LLM reste 200 et que ses dépassements observés restent proches (§ 9).
 
 ---
 
@@ -375,8 +380,10 @@ s'y bascule mais reste sans effet tant que le job quotidien n'existe pas.
 - **Accentuation et nombre des catégories** — le glossaire retient « Économie » (accentué) et
   « Technologies & Science » comme libellés d'interface. À confirmer au premier rendu réel dans
   l'application.
-- **Plafond de 200 caractères sur le résumé** — dérivé du budget de lecture (§ 7), pas encore
-  éprouvé sur une génération réelle. À réévaluer après le premier récap produit par l'API Claude.
+- **Plafond du résumé** — dérivé du budget de lecture (§ 7). Au premier récap réel produit par
+  l'API Claude (9 octobre 2026), le modèle a écrit des résumés de 201 à 253 caractères pour une
+  consigne de 200, et la validation a rejeté le récap entier. D'où la séparation : 200 caractères
+  demandés, 300 tolérés. À réévaluer si les dépassements s'approchent de la tolérance.
 - **Aucune attribution de source** — les brèves ne citent pas les titres collectés dont elles
   proviennent. C'est un choix assumé pour la première version, pas un oubli. Le jour où
   l'attribution arrive, le lien brève → titre collecté devra être nommé ici avant d'être implémenté.

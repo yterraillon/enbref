@@ -19,6 +19,21 @@ public class RecapCountsTests
     }
 
     [Test]
+    public async Task Categories_with_briefs_follow_the_glossary_order()
+    {
+        var recap = new Recap(new DateOnly(2026, 10, 9), new Dictionary<Category, IReadOnlyList<Brief>>
+        {
+            [Category.Culture] = [new Brief("C", "c")],
+            [Category.Sport] = [],
+            [Category.Politics] = [new Brief("A", "a")],
+        });
+
+        var categories = string.Join(",", RecapCounts.CategoriesWithBriefs(recap).Select(category => category.Category));
+
+        await Assert.That(categories).IsEqualTo("Politics,Culture");
+    }
+
+    [Test]
     [Arguments(0, "0 brève")]
     [Arguments(1, "1 brève")]
     [Arguments(2, "2 brèves")]

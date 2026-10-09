@@ -4,7 +4,7 @@ using EnBref.Api.Shared;
 
 namespace EnBref.Api.Tests.BackOffice.Display;
 
-public class LatestRecapTests
+public class MostRecentRecapTests
 {
     private static ReadPublishedRecapResult Read(RecapType type, int day) =>
         new(type.Artifact(), new Recap(new DateOnly(2026, 10, day), new Dictionary<Category, IReadOnlyList<Brief>>()), "{}", Error: null);
@@ -22,7 +22,7 @@ public class LatestRecapTests
             [RecapType.Test] = Read(RecapType.Test, 7),
         };
 
-        await Assert.That(LatestRecap.Pick(reads)).IsEqualTo(RecapType.Demo);
+        await Assert.That(MostRecentRecap.Pick(reads)).IsEqualTo(RecapType.Demo);
     }
 
     [Test]
@@ -35,7 +35,7 @@ public class LatestRecapTests
             [RecapType.Daily] = Read(RecapType.Daily, 9),
         };
 
-        await Assert.That(LatestRecap.Pick(reads)).IsEqualTo(RecapType.Daily);
+        await Assert.That(MostRecentRecap.Pick(reads)).IsEqualTo(RecapType.Daily);
     }
 
     [Test]
@@ -47,7 +47,7 @@ public class LatestRecapTests
             [RecapType.Test] = Read(RecapType.Test, 1),
         };
 
-        await Assert.That(LatestRecap.Pick(reads)).IsEqualTo(RecapType.Test);
+        await Assert.That(MostRecentRecap.Pick(reads)).IsEqualTo(RecapType.Test);
     }
 
     [Test]
@@ -55,6 +55,6 @@ public class LatestRecapTests
     {
         var reads = new Dictionary<RecapType, ReadPublishedRecapResult> { [RecapType.Daily] = Missing(RecapType.Daily) };
 
-        await Assert.That(LatestRecap.Pick(reads)).IsNull();
+        await Assert.That(MostRecentRecap.Pick(reads)).IsNull();
     }
 }

@@ -7,9 +7,16 @@ public static class RecapCounts
 {
     public static string Describe(Recap recap)
     {
-        var categories = recap.Briefs.Count(category => category.Value.Count > 0);
-        return $"{Count(categories, "catégorie", "catégories")} · {Briefs(recap.Briefs.Values.Sum(briefs => briefs.Count))}";
+        var categories = CategoriesWithBriefs(recap);
+        return $"{Count(categories.Count, "catégorie", "catégories")} · {Briefs(categories.Sum(category => category.Briefs.Count))}";
     }
+
+    /// <summary>Catégories affichées : celles qui ont au moins une brève, dans l'ordre du glossaire.</summary>
+    public static IReadOnlyList<(Category Category, IReadOnlyList<Brief> Briefs)> CategoriesWithBriefs(Recap recap) =>
+        Enum.GetValues<Category>()
+            .Select(category => (Category: category, Briefs: recap.Briefs.GetValueOrDefault(category) ?? []))
+            .Where(category => category.Briefs.Count > 0)
+            .ToList();
 
     public static string Briefs(int count) => Count(count, "brève", "brèves");
 

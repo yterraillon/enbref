@@ -58,20 +58,20 @@
                 </div>
                 <div><DisplayBadge Value="Badges.ForCollection(collection)" /></div>
             }
-            <a href="back-office/feeds" class="bo-tile-link subhead">Voir les flux</a>
+            <a href="back-office/feeds" class="bo-tile-link callout">Voir les flux</a>
         </Card>
 
         <Card Class="bo-tile" Label="Modèle">
             <h2 class="eyebrow eb-caps eb-muted">Modèle</h2>
             <div class="article-title-l">@AnthropicOptions.Value.Model</div>
             <div class="footnote eb-muted">Rédige les brèves à partir des titres collectés.</div>
-            <a href="back-office/settings" class="bo-tile-link subhead">Tester le modèle</a>
+            <a href="back-office/settings" class="bo-tile-link callout">Tester le modèle</a>
         </Card>
 
         <Card Class="bo-tile" Label="Génération quotidienne">
             <h2 class="eyebrow eb-caps eb-muted">Génération quotidienne</h2>
             <div class="bo-tile-switch">
-                <span class="body">@(DailyGeneration.IsStarted ? "Démarrée" : "Arrêtée")</span>
+                <span class="body">@RecapTexts.DailyGeneration(DailyGeneration.IsStarted)</span>
                 <Switch Checked="DailyGeneration.IsStarted" CheckedChanged="ToggleDailyGeneration" Label="Génération quotidienne" />
             </div>
             <div class="footnote eb-muted">Sans effet tant que le job quotidien n’existe pas.</div>
@@ -80,7 +80,7 @@
 
     @if (reads is not null)
     {
-        @if (LatestRecap.Pick(reads) is { } latestType && reads[latestType].Recap is { } latest)
+        @if (MostRecentRecap.Pick(reads) is { } latestType && reads[latestType].Recap is { } latest)
         {
             <ListSection Header="Dernier récap généré" Footer="@($"{latestType.Artifact()} · {FrenchDates.Long(latest.Date)}")">
                 <ListRow>
@@ -88,19 +88,15 @@
                     <Subtitle>@RecapCounts.Describe(latest)</Subtitle>
                     <Trailing><DisplayBadge Value="Badges.ForArtifact(latestType, reads[latestType])" /></Trailing>
                 </ListRow>
-                @foreach (var category in Enum.GetValues<Category>())
+                @foreach (var (category, briefs) in RecapCounts.CategoriesWithBriefs(latest))
                 {
-                    var count = latest.Briefs.GetValueOrDefault(category)?.Count ?? 0;
-                    if (count > 0)
-                    {
-                        <ListRow Compact="true">
-                            <Title>@category.Label()</Title>
-                            <Trailing><span class="subhead eb-num eb-muted">@RecapCounts.Briefs(count)</span></Trailing>
-                        </ListRow>
-                    }
+                    <ListRow Compact="true">
+                        <Title>@category.Label()</Title>
+                        <Trailing><span class="subhead eb-num eb-muted">@RecapCounts.Briefs(briefs.Count)</span></Trailing>
+                    </ListRow>
                 }
                 <ListRow Compact="true" Chevron="true" Href="@($"back-office/recaps?type={latestType}")">
-                    <Title><span class="bo-link">Ouvrir le récap</span></Title>
+                    <Title><span class="callout bo-link">Ouvrir le récap</span></Title>
                 </ListRow>
             </ListSection>
         }
@@ -108,7 +104,7 @@
         {
             <Card Class="bo-card--empty" Label="Dernier récap généré">
                 <h2 class="headline">Aucun récap publié</h2>
-                <p class="subhead eb-muted bo-text">Ni latest.json, ni demo.json, ni test.json ne sont lisibles.</p>
+                <p class="subhead eb-muted bo-text">@RecapTexts.NoReadableRecap()</p>
             </Card>
         }
     }

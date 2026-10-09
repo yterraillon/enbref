@@ -9,7 +9,7 @@
 /* Focus clavier (web) */
 .eb-btn:focus-visible, .eb-icon-btn:focus-visible, .eb-switch:focus-visible, .eb-seg-opt:focus-visible,
 .eb-check:focus-visible, .eb-chip:focus-visible, .eb-row-btn:focus-visible, .eb-field input:focus-visible,
-.eb-reorder:focus-visible, .eb-collapsed:focus-visible {
+.eb-reorder:focus-visible, .eb-collapsed:focus-visible, .eb-root a:focus-visible {
   outline: 2px solid var(--focus-ring); outline-offset: 2px;
 }
 :where(button.eb-btn, button.eb-icon-btn, button.eb-switch, button.eb-seg-opt, button.eb-check, button.eb-chip, button.eb-row-btn, button.eb-reorder, button.eb-collapsed) {

@@ -7,14 +7,14 @@
             <img src="@Assets["design-system/app-icon.png"]" alt="" class="bo-brand-icon" />
             <div>
                 <div class="headline">EnBref</div>
-                <div class="caption eb-muted">Administration</div>
+                <div class="caption eb-muted">Back-office</div>
             </div>
         </div>
         <div class="bo-nav-links">
-            <NavLink href="back-office" Match="NavLinkMatch.All" class="bo-nav-link body">Accueil</NavLink>
-            <NavLink href="back-office/recaps" class="bo-nav-link body">Récaps</NavLink>
-            <NavLink href="back-office/feeds" class="bo-nav-link body">Flux RSS</NavLink>
-            <NavLink href="back-office/settings" class="bo-nav-link body">Réglages</NavLink>
+            <NavLink href="back-office" Match="NavLinkMatch.All" ActiveClass="active headline" class="bo-nav-link body">Accueil</NavLink>
+            <NavLink href="back-office/recaps" ActiveClass="active headline" class="bo-nav-link body">Récaps</NavLink>
+            <NavLink href="back-office/feeds" ActiveClass="active headline" class="bo-nav-link body">Flux RSS</NavLink>
+            <NavLink href="back-office/settings" ActiveClass="active headline" class="bo-nav-link body">Réglages</NavLink>
         </div>
         <div class="bo-nav-foot footnote eb-num eb-muted">Version @ServerVersion.Current · @Environment.EnvironmentName</div>
     </nav>

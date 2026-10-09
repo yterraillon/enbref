@@ -95,7 +95,7 @@ Un changement de contrat exige un ADR et une vérification côté app — jamais
 serveur.
 
 La forme cible est fixée au § 7 du glossaire : sept catégories ordonnées, une à deux brèves par
-catégorie, un titre et un résumé de 200 caractères maximum par brève. **L'artefact publié
+catégorie, un titre et un résumé visé à 200 caractères (toléré jusqu'à 300) par brève. **L'artefact publié
 aujourd'hui (par l'ancien serveur) a une autre forme** : voir le § 9 du glossaire.
 
 ## Nommage C#
