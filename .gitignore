@@ -468,3 +468,6 @@ server/src/Database/
 infra/.env.local
 tests/endtoend/**/.env
 TestResults/
+
+# Copie du design system faite au build (ADR-009) : la source est design-system/.
+server/src/Api/wwwroot/design-system/

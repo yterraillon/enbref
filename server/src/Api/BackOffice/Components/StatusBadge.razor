@@ -1,0 +1,11 @@
+<span class="eb-badge @ToneClass footnote" style="font-weight: 600">@ChildContent</span>
+
+@code {
+    [Parameter]
+    public BadgeTone Tone { get; set; } = BadgeTone.Neutral;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string ToneClass => $"eb-badge--{Tone.ToString().ToLowerInvariant()}";
+}

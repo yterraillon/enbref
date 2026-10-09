@@ -15,10 +15,15 @@ Le libellé retenu fait foi quand il diffère de la maquette.
 | Aujourd'hui | « Accueil » | `Home.razor` | `/back-office` |
 | Récaps | « Récaps » | `Recaps.razor` | `/back-office/recaps` |
 | Sources | « Flux RSS » | `Feeds.razor` | `/back-office/feeds` |
-| Réglages | « Réglages » | regroupe `Info.razor` et `Llm.razor` (à fusionner) | à définir |
+| Réglages | « Réglages » | `Settings.razor` | `/back-office/settings` |
 
 « Sources » est écarté : au glossaire, la source est le média, le flux ce qu'il publie, et la page
 liste des flux.
+
+Les composants du design system sont réécrits en Razor dans `src/Api/BackOffice/Components/` :
+`bundle.js` est en React, inutilisable en Blazor. Ils produisent le même markup et les mêmes classes
+que `bundle.js`, pour que `bundle.css` s'applique tel quel. La mise en page propre à l'admin web vit
+dans `src/Api/wwwroot/back-office.css`.
 
 ## Maquettes et design system
 

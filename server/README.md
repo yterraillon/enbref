@@ -23,8 +23,9 @@ dotnet run --project src/Api          # http://localhost:5080/swagger
 | Route | Rôle |
 |---|---|
 | `POST /api/recaps/generations` | déclenche une génération |
-| `/back-office` | back-office (réseau local uniquement) |
+| `/back-office` | back-office (réseau local uniquement) : récap du jour, génération à la main |
+| `/back-office/recaps` | les trois récaps publiés, lus sans cache, et leur régénération |
 | `/back-office/feeds` | titres collectés et état de chaque flux |
-| `/back-office/info` | version du serveur, environnement, démarrage |
+| `/back-office/settings` | génération quotidienne, modèle et test du modèle, version et environnement |
 | `/health` | sonde, renvoie `{ status, version }` |
 | `/swagger` | documentation OpenAPI |

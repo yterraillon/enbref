@@ -1,0 +1,21 @@
+<header class="eb-bar">
+    <div>
+        @if (Eyebrow is not null)
+        {
+            <div class="eb-bar-eyebrow eyebrow">@Eyebrow</div>
+        }
+        <h1 class="eb-bar-title large-title" style="margin: 0">@Title</h1>
+    </div>
+    @Trailing
+</header>
+
+@code {
+    [Parameter]
+    public string? Eyebrow { get; set; }
+
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = "";
+
+    [Parameter]
+    public RenderFragment? Trailing { get; set; }
+}

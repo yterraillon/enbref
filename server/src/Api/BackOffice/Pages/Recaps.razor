@@ -1,78 +1,153 @@
 @page "/back-office/recaps"
+@using EnBref.Api.Features.GenerateRecap
 @using EnBref.Api.Features.ReadPublishedRecap
 @using EnBref.Api.Shared
 @inject ReadPublishedRecapHandler ReadPublishedRecap
+@inject GenerateRecapHandler GenerateRecap
+@inject NavigationManager Navigation
 
 <PageTitle>EnBref — Récaps</PageTitle>
 
-<h1>Récaps</h1>
+<div class="bo-page">
+    <LargeTitle Eyebrow="Artefacts publiés" Title="Récaps" />
 
-<label>
-    Type de récap
-    <select @bind="type" @bind:after="ReadAsync" disabled="@isReading">
-        @foreach (var recapType in Enum.GetValues<RecapType>())
-        {
-            <option value="@recapType">@recapType.Label()</option>
-        }
-    </select>
-</label>
-
-<button @onclick="ReadAsync" disabled="@isReading">@(isReading ? "Lecture…" : "Recharger")</button>
-
-@if (result is not null)
-{
-    <p>Artefact : @result.Artifact</p>
-
-    @if (result.Error is not null)
-    {
-        <p><strong>@result.Error</strong></p>
-        @if (result.Content is not null)
-        {
-            <pre>@result.Content</pre>
-        }
-    }
-
-    @if (result.Recap is { } recap)
-    {
-        <h2>@recap.Date.ToString("dddd d MMMM yyyy", Culture)</h2>
-
-        @foreach (var category in Enum.GetValues<Category>())
-        {
-            <section>
-                <h3>@category.Label()</h3>
-                @foreach (var brief in recap.Briefs.GetValueOrDefault(category) ?? [])
+    <div class="bo-split">
+        <div class="bo-split-side">
+            <ListSection Header="Type de récap" Footer="Le récap du jour est celui que reçoit l’app.">
+                @foreach (var recapType in Enum.GetValues<RecapType>())
                 {
-                    <p><strong>@brief.Title</strong><br />@brief.Summary</p>
+                    <ListRow IsPressed="recapType == type" OnClick="() => Select(recapType)">
+                        <Title><span style="font-weight: 600">@recapType.Label()</span></Title>
+                        <Subtitle>@recapType.Artifact()</Subtitle>
+                        <Trailing>
+                            @if (Read(recapType) is { } read)
+                            {
+                                <DisplayBadge Value="Badges.ForArtifact(recapType, read)" />
+                            }
+                        </Trailing>
+                    </ListRow>
                 }
-            </section>
-        }
-    }
-}
+            </ListSection>
+        </div>
+
+        <div class="bo-split-main">
+            <Card Class="bo-head" Label="@type.Label()">
+                <div class="bo-head-text">
+                    <div class="bo-card-title">
+                        <h2 class="article-title-l">@type.Label()</h2>
+                        @if (Read(type) is { } read)
+                        {
+                            <DisplayBadge Value="Badges.ForArtifact(type, read)" />
+                        }
+                    </div>
+                    <div class="subhead eb-num eb-muted">@(Read(type) is { } meta ? RecapTexts.Meta(meta) : "Lecture…")</div>
+                </div>
+                <div class="bo-actions">
+                    @* La génération ne part que sur ce clic, confirmé pour le récap du jour et le récap de démo. *@
+                    <GenerateButton @key="type" Type="type" Disabled="isGenerating || reads is null" OnGenerate="GenerateAsync">Régénérer</GenerateButton>
+                </div>
+            </Card>
+
+            @if (isGenerating)
+            {
+                <p class="subhead">Génération…</p>
+            }
+            else if (generationFeedback is not null)
+            {
+                <p class="subhead" role="status">@generationFeedback</p>
+            }
+
+            @switch (Read(type))
+            {
+                case null:
+                    break;
+                case { Recap: { } recap }:
+                    <Card Class="bo-card--flush bo-categories" Label="Contenu du récap">
+                        @foreach (var category in Enum.GetValues<Category>())
+                        {
+                            var briefs = recap.Briefs.GetValueOrDefault(category) ?? [];
+                            if (briefs.Count > 0)
+                            {
+                                <div class="bo-category">
+                                    <h3 class="eyebrow">@category.Label()</h3>
+                                    <div class="bo-briefs">
+                                        @foreach (var brief in briefs)
+                                        {
+                                            <article>
+                                                <div class="article-title-m bo-brief-title">@brief.Title</div>
+                                                <div class="article-body-m bo-brief-summary">@brief.Summary</div>
+                                            </article>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        }
+                    </Card>
+                    break;
+                case { IsMissing: true }:
+                    <Card Class="bo-card--empty" Label="@RecapTexts.EmptyTitle(type)">
+                        <h2 class="headline">@RecapTexts.EmptyTitle(type)</h2>
+                        <p class="subhead eb-muted bo-text">@RecapTexts.EmptyBody(type)</p>
+                    </Card>
+                    break;
+                case var unreadable:
+                    <Card Label="Erreur de lecture">
+                        <p class="subhead bo-error bo-text">@unreadable.Error</p>
+                        @if (unreadable.Content is not null)
+                        {
+                            <pre class="footnote bo-raw">@unreadable.Content</pre>
+                        }
+                    </Card>
+                    break;
+            }
+        </div>
+    </div>
+</div>
 
 @code {
-    private static readonly System.Globalization.CultureInfo Culture = new("fr-FR");
-
     [SupplyParameterFromQuery(Name = "type")]
     private string? TypeQuery { get; set; }
 
     private RecapType type = RecapType.Daily;
-    private ReadPublishedRecapResult? result;
-    private bool isReading;
+    private Dictionary<RecapType, ReadPublishedRecapResult>? reads;
+    private bool isGenerating;
+    private string? generationFeedback;
 
-    protected override Task OnInitializedAsync()
+    protected override void OnParametersSet()
     {
-        if (Enum.TryParse<RecapType>(TypeQuery, ignoreCase: true, out var queried) && Enum.IsDefined(queried))
+        var queried = Enum.TryParse<RecapType>(TypeQuery, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed)
+            ? parsed
+            : RecapType.Daily;
+        if (queried != type)
         {
-            type = queried;
+            generationFeedback = null;
         }
 
-        return ReadAsync();
+        type = queried;
     }
 
-    private async Task ReadAsync()
+    protected override async Task OnInitializedAsync()
     {
-        isReading = true;
-        result = await ReadPublishedRecap.HandleAsync(type, CancellationToken.None);
-        isReading = false;
+        var results = await Task.WhenAll(Enum.GetValues<RecapType>()
+            .Select(async recapType => (Type: recapType, Result: await ReadPublishedRecap.HandleAsync(recapType, CancellationToken.None))));
+        reads = results.ToDictionary(read => read.Type, read => read.Result);
+    }
+
+    private ReadPublishedRecapResult? Read(RecapType recapType) => reads?.GetValueOrDefault(recapType);
+
+    private void Select(RecapType recapType) => Navigation.NavigateTo($"back-office/recaps?type={recapType}");
+
+    private async Task GenerateAsync(RecapType recapType)
+    {
+        isGenerating = true;
+        generationFeedback = null;
+        var result = await GenerateRecap.HandleAsync(new GenerateRecapCommand(recapType, Publish: true), CancellationToken.None);
+        generationFeedback = Generations.Feedback(recapType, result);
+        if (reads is not null)
+        {
+            reads[recapType] = await ReadPublishedRecap.HandleAsync(recapType, CancellationToken.None);
+        }
+
+        isGenerating = false;
     }
 }

@@ -21,6 +21,9 @@ src/
 │   ├── Shared/              types servant à plusieurs slices : Recap (modèle, RecapType → libellé et artefact),
 │   │                        RecapContract (JSON publié, ADR-008 : sérialisation et relecture)
 │   └── BackOffice/          Blazor Server, servi sous /back-office
+│       ├── Components/      composants du design system en Razor (markup de bundle.js), GenerateButton
+│       ├── Display/         résultats → libellés, badges, dates FR, dernier récap : testés, sans Blazor
+│       └── Layout/, Pages/  coquille et écrans (Accueil, Récaps, Flux RSS, Réglages)
 └── Infrastructure/          implémentations des dépendances sortantes
     ├── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
     ├── Llm/                 ILlmClient : AnthropicLlmClient (erreurs SDK → LlmStatus)
@@ -61,6 +64,9 @@ contrat, depuis `ReadPublishedRecap`) : ce n'est pas un endroit où ranger les c
 Avant tout travail d'interface du back-office, lire **[`server/design.md`](../design.md)** : lien
 vers les maquettes (source de vérité, pas de copie dans le dépôt), correspondance maquettes ↔ pages
 Blazor et articulation avec le design system.
+
+Une décision d'affichage (badge, texte, choix d'un récap) va dans `BackOffice/Display/` avec son
+test, jamais dans un `.razor`.
 
 ## Ce qui est interdit
 
@@ -141,5 +147,6 @@ dotnet run --project server/src/Api
 SDK .NET 10 (`global.json`), versions de paquets centralisées (`Directory.Packages.props`),
 warnings traités en erreurs (`Directory.Build.props`).
 
-Image Docker : contexte de build = **racine du dépôt** (ADR-009). `Api.csproj` lie `tokens.css`,
-`bundle.css` et le logo de `design-system/` dans `wwwroot/design-system/`, sans copie.
+Image Docker : contexte de build = **racine du dépôt** (ADR-009). `Api.csproj` copie au build
+`tokens.css`, `bundle.css` et le logo de `design-system/` dans `wwwroot/design-system/` (ignoré par
+git) : on modifie toujours `design-system/`, jamais la copie.

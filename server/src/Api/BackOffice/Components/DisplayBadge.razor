@@ -1,0 +1,7 @@
+@* StatusBadge alimenté par un Badge de BackOffice/Display. *@
+<StatusBadge Tone="Value.Tone">@Value.Label</StatusBadge>
+
+@code {
+    [Parameter, EditorRequired]
+    public Badge Value { get; set; } = null!;
+}

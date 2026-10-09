@@ -20,7 +20,7 @@ preview.
 
 Version **CalVer** `YYYY.MM.DD.NN` (ADR-004), calculée sur les tags du jour, passée au build par
 `--build-arg APP_VERSION` : elle devient l'`InformationalVersion` de l'assembly et le label OCI
-`org.opencontainers.image.version`. Le serveur l'expose sur `/health` et `/back-office/info` ; hors
+`org.opencontainers.image.version`. Le serveur l'expose sur `/health` et `/back-office/settings` ; hors
 image, elle vaut `dev`. L'argument ne s'appelle pas `VERSION` : MSBuild lirait la variable
 d'environnement comme `$(Version)` et la restauration échouerait.
 

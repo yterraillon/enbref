@@ -1,1 +1,90 @@
 /* Back-office EnBref — mise en page propre à l'admin web. Uniquement des var(--…) du design system. */
+
+body { margin: 0; background: var(--bg-grouped); color: var(--label); }
+
+/* Coquille : barre latérale + contenu. Pas de @media : la barre passe au-dessus quand le contenu
+   n'a plus sa largeur de formulaire (flex-wrap). */
+.bo-shell { min-height: 100vh; display: flex; flex-wrap: wrap; }
+
+.bo-nav {
+  flex: 1 1 var(--sidebar-width);
+  background: var(--surface);
+  padding: var(--space-26) var(--space-16);
+  display: flex; flex-direction: column; gap: var(--space-26);
+}
+.bo-brand { display: flex; align-items: center; gap: var(--space-12); padding: 0 var(--space-12); }
+.bo-brand-icon { width: 36px; height: 36px; border-radius: var(--radius-md); display: block; }
+.bo-nav-links { display: flex; flex-direction: column; gap: var(--space-2); }
+.bo-nav-link {
+  display: flex; align-items: center; min-height: var(--tap-target); padding: 0 var(--space-12);
+  border-radius: var(--radius-lg); text-decoration: none; color: var(--label);
+}
+.bo-nav-link:hover { background: var(--fill-tertiary); }
+.bo-nav-link.active { background: var(--fill-tertiary); font-weight: 600; }
+.bo-nav-foot { margin-top: auto; padding: 0 var(--space-12); }
+
+.bo-main { flex: 999 1 var(--content-width-form); min-width: 0; padding: var(--space-36) var(--space-36) var(--space-36); }
+
+/* Colonnes de page */
+.bo-page { max-width: var(--content-width-table); margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-26); }
+.bo-page--form { max-width: var(--content-width-form); }
+.bo-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-16); flex-wrap: wrap; }
+
+/* Cartes */
+.bo-card { background: var(--surface); border-radius: var(--radius-card); padding: var(--space-20); display: flex; flex-direction: column; gap: var(--space-16); }
+.bo-card--flush { padding: 0; gap: 0; overflow: hidden; }
+.bo-card--empty { align-items: center; text-align: center; padding: var(--space-36) var(--space-20); gap: var(--space-8); }
+.bo-card-title { display: flex; align-items: center; gap: var(--space-12); flex-wrap: wrap; }
+.bo-card-title > h2, .bo-card-title > h3 { margin: 0; }
+.bo-actions { display: flex; align-items: center; gap: var(--space-20); flex-wrap: wrap; }
+.bo-text { margin: 0; max-width: var(--content-width-form); }
+
+/* Tuiles de l'accueil */
+.bo-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(var(--sidebar-width) + var(--space-20)), 1fr)); gap: var(--space-12); }
+.bo-tile { gap: var(--space-8); }
+.bo-tile h2 { margin: 0; }
+.bo-tile-figure { display: flex; align-items: baseline; gap: var(--space-8); }
+.bo-tile-switch { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); min-height: var(--tap-target); }
+.bo-link { color: var(--accent); font-weight: 600; }
+.bo-tile-link { margin-top: auto; align-self: flex-start; display: inline-flex; align-items: center; min-height: var(--tap-target); font-weight: 600; color: var(--accent); text-decoration: none; }
+
+/* Récaps : sélection à gauche, contenu à droite */
+.bo-split { display: flex; flex-wrap: wrap; gap: var(--space-26); align-items: flex-start; }
+.bo-split-side { flex: 1 1 calc(var(--sidebar-width) + var(--space-36) * 2); min-width: 0; }
+.bo-split-main { flex: 999 1 calc(var(--content-width-form) - var(--space-36) * 4); min-width: 0; display: flex; flex-direction: column; gap: var(--space-20); }
+.bo-head { flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-20); }
+.bo-head-text { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
+
+.bo-categories > * + * { border-top: var(--hairline) solid var(--separator); }
+.bo-category { display: flex; flex-wrap: wrap; gap: var(--space-8) var(--space-26); padding: var(--space-20); }
+.bo-category > h3 { flex: 0 0 calc(var(--sidebar-width) - var(--space-36) * 2); margin: 0; color: var(--label-secondary); text-transform: uppercase; }
+.bo-briefs { flex: 1 1 calc(var(--content-width-form) / 2); min-width: 0; display: flex; flex-direction: column; gap: var(--space-16); }
+.bo-brief-title { text-wrap: pretty; }
+.bo-brief-summary { margin-top: var(--space-4); color: var(--label-body); text-wrap: pretty; }
+.bo-raw { margin: 0; padding: var(--space-12); background: var(--fill-tertiary); border-radius: var(--radius-sm); overflow: auto; white-space: pre-wrap; }
+
+/* Flux RSS */
+.bo-feeds { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--content-width-form) - var(--sidebar-width))), 1fr)); gap: var(--space-12); align-items: start; }
+.bo-feed-head { padding: var(--space-20) var(--space-18) var(--space-12); display: flex; flex-direction: column; gap: var(--space-4); }
+.bo-feed-title { display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); }
+.bo-feed-title > h2 { margin: 0; }
+.bo-feed-url { color: var(--label-secondary); overflow-wrap: anywhere; }
+.bo-feed-count { margin-top: var(--space-8); color: var(--label-secondary); text-transform: uppercase; }
+.bo-headlines { list-style: none; margin: 0; padding: 0 0 0 var(--space-18); }
+.bo-headlines li { padding: var(--space-12) var(--space-18) var(--space-12) 0; text-wrap: pretty; }
+.bo-headlines li + li { border-top: var(--hairline) solid var(--separator); }
+.bo-feed-foot { border-top: var(--hairline) solid var(--separator); padding: 0 var(--space-18); min-height: var(--row-height-compact); display: flex; align-items: center; }
+
+/* Réglages */
+.bo-form { padding: var(--space-18); display: flex; flex-direction: column; gap: var(--space-16); }
+.bo-response { background: var(--fill-tertiary); border-radius: var(--radius-sm); padding: var(--space-12) var(--space-16); }
+.bo-error { color: var(--danger); }
+
+/* Surcharges des composants pour l'admin web : sections pleine largeur de colonne, barre de titre
+   statique (pas de matière translucide hors iPhone). */
+.eb-admin .eb-card { margin: 0; }
+.eb-admin .eb-section-head, .eb-admin .eb-section-foot { padding-left: var(--space-18); padding-right: var(--space-18); }
+.eb-admin .eb-bar { position: static; background: transparent; padding: 0; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.eb-admin a.eb-row { text-decoration: none; }
+.eb-admin a.eb-row:hover, .eb-admin .eb-row-btn:hover, .eb-admin .eb-row-btn[aria-pressed="true"] { background: var(--fill-tertiary); }
+.eb-admin a:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }

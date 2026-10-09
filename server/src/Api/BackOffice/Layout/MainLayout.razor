@@ -1,13 +1,25 @@
 @inherits LayoutComponentBase
+@inject IHostEnvironment Environment
 
-<nav>
-    <a href="back-office">Accueil</a> ·
-    <a href="back-office/recaps">Récaps</a> ·
-    <a href="back-office/feeds">Flux</a> ·
-    <a href="back-office/llm">LLM</a> ·
-    <a href="back-office/info">Info</a>
-</nav>
+<div class="bo-shell">
+    <nav class="bo-nav" aria-label="Navigation principale">
+        <div class="bo-brand">
+            <img src="@Assets["design-system/app-icon.png"]" alt="" class="bo-brand-icon" />
+            <div>
+                <div class="headline">EnBref</div>
+                <div class="caption eb-muted">Administration</div>
+            </div>
+        </div>
+        <div class="bo-nav-links">
+            <NavLink href="back-office" Match="NavLinkMatch.All" class="bo-nav-link body">Accueil</NavLink>
+            <NavLink href="back-office/recaps" class="bo-nav-link body">Récaps</NavLink>
+            <NavLink href="back-office/feeds" class="bo-nav-link body">Flux RSS</NavLink>
+            <NavLink href="back-office/settings" class="bo-nav-link body">Réglages</NavLink>
+        </div>
+        <div class="bo-nav-foot footnote eb-num eb-muted">Version @ServerVersion.Current · @Environment.EnvironmentName</div>
+    </nav>
 
-<main>
-    @Body
-</main>
+    <main class="bo-main">
+        @Body
+    </main>
+</div>

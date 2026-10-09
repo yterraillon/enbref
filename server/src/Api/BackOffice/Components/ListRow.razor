@@ -1,0 +1,75 @@
+@if (Href is not null)
+{
+    <a href="@Href" class="@CssClass">@Content</a>
+}
+else if (OnClick.HasDelegate)
+{
+    <button type="button" class="@CssClass" aria-pressed="@Pressed" @onclick="OnClick">@Content</button>
+}
+else
+{
+    <div class="@CssClass">@Content</div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public RenderFragment Title { get; set; } = null!;
+
+    /// <summary>Seconde ligne : passe la ligne à 60 px.</summary>
+    [Parameter]
+    public RenderFragment? Subtitle { get; set; }
+
+    /// <summary>Pastille de valeur.</summary>
+    [Parameter]
+    public string? Value { get; set; }
+
+    /// <summary>Contrôle ou texte en fin de ligne.</summary>
+    [Parameter]
+    public RenderFragment? Trailing { get; set; }
+
+    [Parameter]
+    public bool Chevron { get; set; }
+
+    /// <summary>Ligne de 48 px.</summary>
+    [Parameter]
+    public bool Compact { get; set; }
+
+    [Parameter]
+    public string? Href { get; set; }
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    /// <summary>État pressé d'une ligne-bouton qui sert de sélection ; null sinon.</summary>
+    [Parameter]
+    public bool? IsPressed { get; set; }
+
+    private string? Pressed => IsPressed switch { true => "true", false => "false", null => null };
+
+    private string CssClass => string.Join(" ", new[]
+    {
+        "eb-row",
+        Compact ? "eb-row--compact" : null,
+        Subtitle is not null ? "eb-row--tall" : null,
+        Href is not null || OnClick.HasDelegate ? "eb-row-btn" : null,
+    }.Where(css => css is not null));
+
+    private RenderFragment Content => @<text>
+        <span class="eb-row-main">
+            <span class="body" style="display: block">@Title</span>
+            @if (Subtitle is not null)
+            {
+                <span class="eb-row-sub footnote" style="display: block">@Subtitle</span>
+            }
+        </span>
+        @if (Value is not null)
+        {
+            <span class="eb-row-value body">@Value</span>
+        }
+        @Trailing
+        @if (Chevron)
+        {
+            <span class="eb-row-chev"><Icon Name="IconName.ChevronRight" /></span>
+        }
+    </text>;
+}

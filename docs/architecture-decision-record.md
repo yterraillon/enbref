@@ -314,9 +314,11 @@ pas `design-system/`. Copier les fichiers dans `server/` créerait une seconde s
   `pr-server.yml`, `release-server.yml`). Le Dockerfile reste `server/src/Api/Dockerfile`.
 - Un `.dockerignore` racine exclut tout sauf `server/` et `design-system/` ; `server/.dockerignore`
   est supprimé.
-- `Api.csproj` **lie** les fichiers du design system dans `wwwroot/design-system/` (élément
-  `Content` avec `Link`), sans copie. Ils sont servis par `MapStaticAssets`, avec empreinte et
-  compression. `server/src/Api/wwwroot/` doit exister physiquement (il porte `back-office.css`) :
+- `Api.csproj` **copie au build** les fichiers du design system dans `wwwroot/design-system/`
+  (cible `CopyDesignSystem`), dossier ignoré par git : `design-system/` reste la seule source. Ils
+  sont servis par `MapStaticAssets`, avec empreinte et compression. Un simple lien (`Content` avec
+  `Link`) ne suffit pas : le serveur de développement ne sert que des fichiers présents sous
+  `wwwroot/`, et les servait vides. `server/src/Api/wwwroot/` doit exister physiquement (il porte `back-office.css`) :
   sans lui, l'hôte ne démarre pas, le manifeste des assets liés y pointant.
 - Les workflows serveur se déclenchent aussi sur `design-system/**`.
 
@@ -328,5 +330,6 @@ pas `design-system/`. Copier les fichiers dans `server/` créerait une seconde s
   `server/` seul (`docker build ./server` échoue).
 - **Coût :** toute modification de `design-system/`, même destinée à iOS seul, déclenche une release
   serveur CalVer (ADR-004), et la version de l'image couple désormais serveur et design system.
+- **Coût :** en local, une modification du design system n'apparaît qu'après un rebuild du serveur.
 - **Coût :** le contexte envoyé au démon Docker est plus large ; le `.dockerignore` racine, en
   liste d'autorisation, doit suivre tout nouveau dossier dont l'image aurait besoin.

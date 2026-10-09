@@ -1,0 +1,54 @@
+@using EnBref.Api.Shared
+@* Bouton de génération : une seconde étape confirme l'artefact visé quand la génération le demande.
+   L'état de confirmation reste dans le composant, jamais dans l'URL. *@
+@if (isConfirming)
+{
+    <Button Disabled="Disabled" OnClick="ConfirmAsync">Confirmer la publication sur @Type.Artifact()</Button>
+    <Button Variant="ButtonVariant.Plain" OnClick="Cancel">Annuler</Button>
+}
+else
+{
+    <Button Variant="Variant" Icon="Icon" Disabled="Disabled" OnClick="StartAsync">@ChildContent</Button>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public RecapType Type { get; set; }
+
+    [Parameter]
+    public ButtonVariant Variant { get; set; } = ButtonVariant.Primary;
+
+    [Parameter]
+    public IconName? Icon { get; set; }
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    /// <summary>Appelé au clic, ou à la confirmation quand elle est requise.</summary>
+    [Parameter]
+    public EventCallback<RecapType> OnGenerate { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool isConfirming;
+
+    private Task StartAsync()
+    {
+        if (Generations.RequiresConfirmation(Type))
+        {
+            isConfirming = true;
+            return Task.CompletedTask;
+        }
+
+        return OnGenerate.InvokeAsync(Type);
+    }
+
+    private Task ConfirmAsync()
+    {
+        isConfirming = false;
+        return OnGenerate.InvokeAsync(Type);
+    }
+
+    private void Cancel() => isConfirming = false;
+}
