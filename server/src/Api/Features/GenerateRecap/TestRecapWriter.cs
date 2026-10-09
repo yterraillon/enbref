@@ -1,3 +1,5 @@
+using EnBref.Api.Shared;
+
 namespace EnBref.Api.Features.GenerateRecap;
 
 /// <summary>Récap de test : écrit sans LLM à partir de la fausse source, il ne prouve que la publication (ADR-007).</summary>

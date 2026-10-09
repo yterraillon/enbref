@@ -51,6 +51,39 @@ public sealed class GithubPublicationRepository(
         }
     }
 
+    // Le dépôt est public : la lecture se passe du jeton, donc fonctionne en local où il est vide.
+    public async Task<ArtifactReadResult> ReadAsync(string artifact, CancellationToken cancellationToken)
+    {
+        var settings = options.Value;
+        var uri = $"repos/{settings.Repository}/contents/{settings.Directory}/{artifact}?ref={settings.Branch}";
+        try
+        {
+            using var request = Request(HttpMethod.Get, uri, settings);
+            // Contenu brut plutôt que l'enveloppe JSON en base64.
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.raw+json"));
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                return new ArtifactReadResult(Content: null, $"Artefact absent : {artifact}.");
+            }
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ArtifactReadResult(Content: null, await DescribeAsync(response, cancellationToken));
+            }
+
+            return new ArtifactReadResult(await response.Content.ReadAsStringAsync(cancellationToken), Error: null);
+        }
+        catch (HttpRequestException exception)
+        {
+            return new ArtifactReadResult(Content: null, exception.Message);
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            return new ArtifactReadResult(Content: null, $"Timeout : {exception.Message}");
+        }
+    }
+
     // Sans sha, GitHub crée le fichier ; avec, il le remplace.
     private async Task<string?> GetShaAsync(string uri, GithubOptions settings, CancellationToken cancellationToken)
     {
@@ -70,8 +103,16 @@ public sealed class GithubPublicationRepository(
         return file?.Sha;
     }
 
-    private static HttpRequestMessage Request(HttpMethod method, string uri, GithubOptions settings) =>
-        new(method, uri) { Headers = { Authorization = new AuthenticationHeaderValue("Bearer", settings.Token) } };
+    private static HttpRequestMessage Request(HttpMethod method, string uri, GithubOptions settings)
+    {
+        var request = new HttpRequestMessage(method, uri);
+        if (!string.IsNullOrWhiteSpace(settings.Token))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.Token);
+        }
+
+        return request;
+    }
 
     private static async Task<string> DescribeAsync(HttpResponseMessage response, CancellationToken cancellationToken) =>
         $"GitHub {(int)response.StatusCode} {response.ReasonPhrase} : {await response.Content.ReadAsStringAsync(cancellationToken)}";

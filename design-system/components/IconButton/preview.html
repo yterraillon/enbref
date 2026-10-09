@@ -1,0 +1,18 @@
+<!-- @dsCard group="Actions" height=90 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>IconButton — EnBref</title>
+<style>html,body{margin:0;background:var(--bg-grouped)}</style></head>
+<body>
+<div id="root" class="eb-root eb-screen"></div>
+<script>
+  var E = window.EnBref, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{display:'flex',gap:16,alignItems:'center',padding:'0 16px'}},
+  h(E.IconButton, {label:'Taille du texte'}, 'Aa'),
+  h(E.IconButton, {variant:'filled', icon:'pause', label:'Pause'}),
+  h(E.IconButton, {variant:'filled', icon:'play', label:'Lecture'}),
+  h(E.IconButton, {variant:'ghost', icon:'skip-forward', label:'Rubrique suivante'}),
+  h(E.IconButton, {variant:'ghost', label:'Vitesse'}, h('span',{className:'subhead',style:{fontWeight:600}}, '1,25×'))));
+</script>
+</body>
+</html>

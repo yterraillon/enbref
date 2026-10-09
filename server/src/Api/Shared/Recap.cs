@@ -1,4 +1,4 @@
-namespace EnBref.Api.Features.GenerateRecap;
+namespace EnBref.Api.Shared;
 
 /// <summary>Type de récap — voir docs/ubiquitous-language.md.</summary>
 public enum RecapType
@@ -20,12 +20,26 @@ public enum Category
     Culture,
 }
 
-/// <summary>Étape d'une génération — voir docs/ubiquitous-language.md.</summary>
-public enum GenerationStep
+public static class RecapTypes
 {
-    Collection,
-    Generation,
-    Publication,
+    /// <summary>Libellé UI du type de récap (glossaire § 2).</summary>
+    public static string Label(this RecapType type) => type switch
+    {
+        RecapType.Daily => "Récap du jour",
+        RecapType.Demo => "Récap de démo",
+        RecapType.Test => "Récap de test",
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Type de récap sans libellé."),
+    };
+
+    // Seul endroit qui nomme un artefact publié. L'artefact découle du type, jamais d'un paramètre
+    // d'appel ni de la configuration : le récap de test n'atteint que test.json (ADR-007).
+    public static string Artifact(this RecapType type) => type switch
+    {
+        RecapType.Daily => "latest.json",
+        RecapType.Demo => "demo.json",
+        RecapType.Test => "test.json",
+        _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Type de récap sans artefact."),
+    };
 }
 
 public static class CategoryLabels

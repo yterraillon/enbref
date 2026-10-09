@@ -1,0 +1,21 @@
+<!-- @dsCard group="Listes" height=420 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>ListRow — EnBref</title>
+<style>html,body{margin:0;background:var(--bg-grouped)}</style></head>
+<body>
+<div id="root" class="eb-root eb-screen"></div>
+<script>
+  var E = window.EnBref, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', null,
+ h(E.ListSection, {header:'Rubriques'},
+  h(E.ListRow, {title:'Politique', onMoveDown:function(){}, trailing:h(E.Switch,{defaultChecked:true,label:'Politique'})}),
+  h(E.ListRow, {title:'International', onMoveUp:function(){}, onMoveDown:function(){}, trailing:h(E.Switch,{defaultChecked:true,label:'International'})}),
+  h(E.ListRow, {title:'Sport', dimmed:true, onMoveUp:function(){}, trailing:h(E.Switch,{label:'Sport'})})),
+ h(E.ListSection, {header:'Siri et Raccourcis'},
+  h(E.ListRow, {title:'Ajouter à Siri', subtitle:'« Dis Siri, lis EnBref »', action:'Activer', onClick:function(){}}),
+  h(E.ListRow, {title:'Ouvrir dans Raccourcis', chevron:true, onClick:function(){}}),
+  h(E.ListRow, {title:'Mentions légales', chevron:true, compact:true, onClick:function(){}}))));
+</script>
+</body>
+</html>

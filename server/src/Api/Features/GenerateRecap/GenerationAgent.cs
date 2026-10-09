@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using EnBref.Api.Shared;
 using EnBref.Infrastructure.Llm;
 
 namespace EnBref.Api.Features.GenerateRecap;

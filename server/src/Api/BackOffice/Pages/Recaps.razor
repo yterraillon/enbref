@@ -1,0 +1,67 @@
+@page "/back-office/recaps"
+@using EnBref.Api.Features.ReadPublishedRecap
+@using EnBref.Api.Shared
+@inject ReadPublishedRecapHandler ReadPublishedRecap
+
+<PageTitle>EnBref — Récaps</PageTitle>
+
+<h1>Récaps</h1>
+
+<label>
+    Type de récap
+    <select @bind="type" @bind:after="ReadAsync" disabled="@isReading">
+        @foreach (var recapType in Enum.GetValues<RecapType>())
+        {
+            <option value="@recapType">@recapType.Label()</option>
+        }
+    </select>
+</label>
+
+<button @onclick="ReadAsync" disabled="@isReading">@(isReading ? "Lecture…" : "Recharger")</button>
+
+@if (result is not null)
+{
+    <p>Artefact : @result.Artifact</p>
+
+    @if (result.Error is not null)
+    {
+        <p><strong>@result.Error</strong></p>
+        @if (result.Content is not null)
+        {
+            <pre>@result.Content</pre>
+        }
+    }
+
+    @if (result.Recap is { } recap)
+    {
+        <h2>@recap.Date.ToString("dddd d MMMM yyyy", Culture)</h2>
+
+        @foreach (var category in Enum.GetValues<Category>())
+        {
+            <section>
+                <h3>@category.Label()</h3>
+                @foreach (var brief in recap.Briefs.GetValueOrDefault(category) ?? [])
+                {
+                    <p><strong>@brief.Title</strong><br />@brief.Summary</p>
+                }
+            </section>
+        }
+    }
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo Culture = new("fr-FR");
+
+    private RecapType type = RecapType.Daily;
+    private ReadPublishedRecapResult? result;
+    private bool isReading;
+
+    protected override Task OnInitializedAsync() => ReadAsync();
+
+    private async Task ReadAsync()
+    {
+        isReading = true;
+        result = await ReadPublishedRecap.HandleAsync(type, CancellationToken.None);
+        isReading = false;
+    }
+}

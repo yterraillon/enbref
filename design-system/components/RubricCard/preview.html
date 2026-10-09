@@ -1,0 +1,17 @@
+<!-- @dsCard group="Lecture" height=470 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>RubricCard — EnBref</title>
+<style>html,body{margin:0;background:var(--bg-grouped)}</style></head>
+<body>
+<div id="root" class="eb-root eb-screen"></div>
+<script>
+  var E = window.EnBref, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', null,
+ h(E.RubricCard, {name:'Politique', current:true, items:[
+   {title:'Budget 2027 : les députés ouvrent les débats', body:"L'Assemblée nationale commence ce lundi l'examen du projet de loi de finances. Le texte prévoit 18 milliards d'euros d'économies, principalement sur le fonctionnement de l'État."},
+   {title:'Scrutin municipal : la réforme validée en commission', body:"La commission des lois du Sénat a approuvé l'extension du scrutin de liste aux communes de moins de 1 000 habitants."}]}),
+ h(E.RubricCard, {name:'International', defaultRead:true, items:[]})));
+</script>
+</body>
+</html>

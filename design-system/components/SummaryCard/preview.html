@@ -1,0 +1,13 @@
+<!-- @dsCard group="Lecture" height=200 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>SummaryCard — EnBref</title>
+<style>html,body{margin:0;background:var(--bg-grouped)}</style></head>
+<body>
+<div id="root" class="eb-root eb-screen"></div>
+<script>
+  var E = window.EnBref, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h(E.SummaryCard, {read:2, total:7, minutes:5, segments:['done','done','current','todo','todo','todo','todo']}));
+</script>
+</body>
+</html>

@@ -14,14 +14,17 @@ src/
 ├── Api/                     racine de composition : Program.cs, DI, ServerVersion (/health, back-office)
 │   ├── Features/
 │   │   ├── CollectHeadlines/ collecte, appelée en mémoire (génération, back-office)
-│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler (+ Command, Result ; type → pipeline et artefact),
-│   │                        Recap (modèle, RecapType), RecapContract (JSON publié, ADR-008),
-│   │                        IRecapWriter (GenerationAgent : prompt + validation, TestRecapWriter)
+│   │   ├── GenerateRecap/   Endpoint (Add…/Map…), Handler (+ Command, Result ; type → pipeline),
+│   │   │                    IRecapWriter (GenerationAgent : prompt + validation, TestRecapWriter)
+│   │   └── ReadPublishedRecap/ lecture du récap publié à la source, appelée en mémoire (back-office)
+│   ├── Shared/              types servant à plusieurs slices : Recap (modèle, RecapType → libellé et artefact),
+│   │                        RecapContract (JSON publié, ADR-008 : sérialisation et relecture)
 │   └── BackOffice/          Blazor Server, servi sous /back-office
 └── Infrastructure/          implémentations des dépendances sortantes
     ├── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
     ├── Llm/                 ILlmClient : AnthropicLlmClient (erreurs SDK → LlmStatus)
-    └── Publication/         IPublicationRepository : GithubPublicationRepository (API Contents GitHub, erreurs → PublicationResult)
+    └── Publication/         IPublicationRepository : GithubPublicationRepository (API Contents GitHub, publication et
+                             lecture sans CDN ; erreurs → PublicationResult, ArtifactReadResult)
 ```
 
 **Pas de MediatR.** Les handlers sont des classes ordinaires, injectées et appelées directement par
@@ -49,8 +52,8 @@ Trois dépendances sortantes doivent rester derrière un contrat, chacune pour u
 cas où » ajoute de l'indirection sans bénéfice.
 
 Règle générale : une abstraction devient partagée quand un **deuxième** appelant la réclame, pas
-avant. `Api/Shared/` n'existe pas tant qu'aucun type ne sert à deux slices : on le crée à ce
-moment-là, et ce n'est pas un endroit où ranger les choses par défaut.
+avant. `Api/Shared/` ne contient que des types qui servent à au moins deux slices (le récap et son
+contrat, depuis `ReadPublishedRecap`) : ce n'est pas un endroit où ranger les choses par défaut.
 
 ## Ce qui est interdit
 
@@ -99,7 +102,7 @@ Clés lues dans le Secret Manager en développement et dans les variables d'envi
 
 | Clé | Rôle |
 |---|---|
-| `GithubToken` | publication — **vide en local**, sinon on écrase la production ; absent → publication en échec (502) |
+| `GithubToken` | publication — **vide en local**, sinon on écrase la production ; absent → publication en échec (502), lecture sans jeton (dépôt public) |
 | `Anthropic:ApiKey` | API Claude — user secrets en local, `Anthropic__ApiKey` en production |
 | `Anthropic:Model` | modèle Claude — `claude-haiku-4-5` en Development, `claude-opus-5-5` sinon |
 

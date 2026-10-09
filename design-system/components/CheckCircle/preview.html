@@ -1,0 +1,15 @@
+<!-- @dsCard group="Contrôles" height=110 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>CheckCircle — EnBref</title>
+<style>html,body{margin:0;background:var(--bg-grouped)}</style></head>
+<body>
+<div id="root" class="eb-root eb-screen"></div>
+<script>
+  var E = window.EnBref, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{padding:'0 16px'}}, h('div',{className:'eb-card',style:{padding:'0 18px',margin:0}},
+  h(E.CheckCircle, null, 'Marquer comme lu'),
+  h(E.CheckCircle, {defaultChecked:true}, 'Rubrique lue'))));
+</script>
+</body>
+</html>

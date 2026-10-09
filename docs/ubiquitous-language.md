@@ -68,6 +68,15 @@ bout sans consommer de crédits. Il n'écrase **jamais** `latest.json` ni `demo.
 
 **À ne pas dire** : récap de démo, récap jetable, dry run.
 
+### Récap publié
+**Code** : `PublishedRecap` · **UI** : « Récap publié »
+
+Le récap tel qu'il se trouve dans un artefact du dépôt de publication, lu à la source plutôt que sur
+le CDN, dont le cache masquerait une publication récente. C'est ce que le back-office affiche pour
+vérifier une publication, quel que soit le type de récap.
+
+**À ne pas dire** : récap en ligne, récap live, récap non caché, récap distant.
+
 ### Type de récap
 **Code** : `RecapType` (`Daily`, `Demo`, `Test`) · **UI** : « Type de récap »
 
@@ -297,6 +306,7 @@ budget de lecture est la contrainte, le plafond de caractères n'en est que la t
 | latest (seul), récap courant | Récap du jour |
 | fixture, mock | Récap de démo |
 | dry run, récap jetable | Récap de test |
+| récap en ligne, récap live, récap non caché | Récap publié |
 | item, entrée, article, news, card | Brève |
 | headline, intitulé, accroche | Titre |
 | description, body, contenu, synthèse | Résumé |
@@ -345,8 +355,8 @@ Absents du code à ce stade : l'historique, les
   terme est à définir ici avant d'être implémenté.
 
 - **`.claude/CLAUDE.md` § Project Overview** — employait « récap de test » pour désigner le **récap
-  de démo** (§ 2) ; corrigé. « Le récap du jour non caché » désigne un affichage back-office qui
-  reste à nommer si on l'implémente.
+  de démo** (§ 2) ; corrigé. « Le récap du jour rechargé sans cache » y désigne le **récap publié**
+  (§ 2).
 - **Heure de génération** — 17 h, conformément au cron `0 0 17 * * ?` du job. L'ancien serveur mentionnait
   16 h comme cible ; c'est 17 h qui fait foi.
 - **Accentuation et nombre des catégories** — le glossaire retient « Économie » (accentué) et

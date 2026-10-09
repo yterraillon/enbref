@@ -1,0 +1,15 @@
+<!-- @dsCard group="Listes" height=250 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>ListSection — EnBref</title>
+<style>html,body{margin:0;background:var(--bg-grouped)}</style></head>
+<body>
+<div id="root" class="eb-root eb-screen"></div>
+<script>
+  var E = window.EnBref, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h(E.ListSection, {header:'Réception', footer:"La notification arrive chaque jour à cette heure, même en mode Concentration Sommeil si vous l'autorisez."},
+  h(E.ListRow, {title:'Heure du récap', value:'7:30', onClick:function(){}}),
+  h(E.ListRow, {title:'Aperçu des titres', trailing:h(E.Switch,{defaultChecked:true,label:'Aperçu des titres'})})));
+</script>
+</body>
+</html>

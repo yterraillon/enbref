@@ -1,0 +1,14 @@
+<!-- @dsCard group="Contrôles" height=170 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>ChoiceChips — EnBref</title>
+<style>html,body{margin:0;background:var(--bg-grouped)}</style></head>
+<body>
+<div id="root" class="eb-root eb-screen"></div>
+<script>
+  var E = window.EnBref, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{padding:'0 16px'}}, h('div',{className:'eb-card',style:{padding:'16px 18px',margin:0}},
+  h(E.ChoiceChips, {options:['6:00','6:30','7:00','7:30','8:00','8:30','12:00','18:00','21:00'], defaultValue:'7:30', label:'Heure du récap'}))));
+</script>
+</body>
+</html>

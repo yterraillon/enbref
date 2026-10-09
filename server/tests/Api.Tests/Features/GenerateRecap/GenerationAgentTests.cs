@@ -1,5 +1,6 @@
 using System.Text.Json;
 using EnBref.Api.Features.GenerateRecap;
+using EnBref.Api.Shared;
 using EnBref.Infrastructure.Llm;
 using Microsoft.Extensions.Logging.Abstractions;
 
