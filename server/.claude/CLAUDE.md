@@ -56,6 +56,12 @@ Règle générale : une abstraction devient partagée quand un **deuxième** app
 avant. `Api/Shared/` ne contient que des types qui servent à au moins deux slices (le récap et son
 contrat, depuis `ReadPublishedRecap`) : ce n'est pas un endroit où ranger les choses par défaut.
 
+## Back-office — design
+
+Avant tout travail d'interface du back-office, lire **[`server/design.md`](../design.md)** : lien
+vers les maquettes (source de vérité, pas de copie dans le dépôt), correspondance maquettes ↔ pages
+Blazor et articulation avec le design system.
+
 ## Ce qui est interdit
 
 - **Un endpoint qui déclenche une génération sans intention explicite.** Une génération consomme
