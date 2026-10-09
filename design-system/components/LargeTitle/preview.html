@@ -1,0 +1,13 @@
+<!-- @dsCard group="Navigation" height=120 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>LargeTitle — EnBref</title>
+<style>html,body{margin:0;background:var(--bg-grouped)}</style></head>
+<body>
+<div id="root" class="eb-root" style="background:var(--bg-grouped)"></div>
+<script>
+  var E = window.EnBref, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h(E.LargeTitle, {eyebrow:'Lundi 28 septembre', title:"Aujourd'hui", trailing:h(E.IconButton,{label:'Taille du texte'},'Aa')}));
+</script>
+</body>
+</html>

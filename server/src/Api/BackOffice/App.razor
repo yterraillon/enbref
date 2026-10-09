@@ -4,9 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
+    @* Clair ou Sombre, suivi automatiquement : tokens.css bascule sur data-theme. *@
+    <script>
+        (() => {
+            const dark = window.matchMedia("(prefers-color-scheme: dark)");
+            const apply = () => document.documentElement.dataset.theme = dark.matches ? "dark" : "light";
+            apply();
+            dark.addEventListener("change", apply);
+        })();
+    </script>
+    <link rel="stylesheet" href="@Assets["design-system/tokens.css"]" />
+    <link rel="stylesheet" href="@Assets["design-system/bundle.css"]" />
+    <link rel="stylesheet" href="@Assets["back-office.css"]" />
+    <link rel="icon" type="image/png" href="@Assets["design-system/app-icon.png"]" />
     <HeadOutlet />
 </head>
-<body>
+<body class="eb-root eb-admin">
     <Routes @rendermode="InteractiveServer" />
     <script src="_framework/blazor.web.js"></script>
 </body>

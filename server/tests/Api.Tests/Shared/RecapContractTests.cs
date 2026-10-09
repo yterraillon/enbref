@@ -1,7 +1,7 @@
 using System.Text.Json;
-using EnBref.Api.Features.GenerateRecap;
+using EnBref.Api.Shared;
 
-namespace EnBref.Api.Tests.Features.GenerateRecap;
+namespace EnBref.Api.Tests.Shared;
 
 public class RecapContractTests
 {
@@ -42,5 +42,27 @@ public class RecapContractTests
     public async Task Accents_stay_readable()
     {
         await Assert.That(RecapContract.Serialize(Recap)).Contains("détour");
+    }
+
+    [Test]
+    public async Task A_published_recap_reads_back_identical()
+    {
+        var recap = RecapContract.Deserialize(RecapContract.Serialize(Recap));
+
+        await Assert.That(recap.Date).IsEqualTo(Recap.Date);
+        foreach (var category in Enum.GetValues<Category>())
+        {
+            await Assert.That(recap.Briefs[category]).IsEquivalentTo(Recap.Briefs[category]);
+        }
+    }
+
+    [Test]
+    [Arguments("""{ "title": "Récap du 8 octobre", "sections": [] }""")]
+    [Arguments("""{ "date": "2026-10-08", "categories": [ { "category": "weather", "briefs": [] } ] }""")]
+    [Arguments("""{ "date": "2026-10-08", "categories": [ { "category": "sport", "briefs": [ { "title": "Titre" } ] } ] }""")]
+    [Arguments("""{ "date": "2026-10-08", "categories": [ { "category": "sport", "briefs": [] }, { "category": "sport", "briefs": [] } ] }""")]
+    public async Task A_json_off_contract_is_rejected(string json)
+    {
+        await Assert.That(() => RecapContract.Deserialize(json)).Throws<JsonException>();
     }
 }

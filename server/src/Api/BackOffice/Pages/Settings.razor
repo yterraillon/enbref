@@ -1,0 +1,103 @@
+@page "/back-office/settings"
+@using EnBref.Api.Features.ToggleDailyGeneration
+@using EnBref.Infrastructure.Llm
+@using Microsoft.Extensions.Options
+@inject DailyGenerationSwitch DailyGeneration
+@inject ILlmClient LlmClient
+@inject IOptions<AnthropicOptions> AnthropicOptions
+@inject IHostEnvironment Environment
+
+<PageTitle>EnBref — Réglages</PageTitle>
+
+<div class="bo-page bo-page--form">
+    <LargeTitle Title="Réglages" />
+
+    <div>
+        <ListSection Header="Génération" Footer="Sans effet tant que le job quotidien n’existe pas.">
+            <ListRow>
+                <Title>Génération quotidienne</Title>
+                <Trailing>
+                    <Switch Checked="DailyGeneration.IsStarted" CheckedChanged="ToggleDailyGeneration" Label="Génération quotidienne" />
+                </Trailing>
+            </ListRow>
+        </ListSection>
+
+        <ListSection Header="Modèle" Footer="Le modèle rédige les brèves à partir des titres collectés.">
+            <ListRow Value="@AnthropicOptions.Value.Model">
+                <Title>Modèle</Title>
+            </ListRow>
+        </ListSection>
+
+        <ListSection Header="Tester le modèle" Footer="Envoie un message au modèle configuré, sans rien publier.">
+            <div class="bo-form">
+                <TextField Id="llm-message" Label="Message" Placeholder="Résume en une phrase : Blocus des lycées, 141 établissements fermés" @bind-Value="message" />
+                <div class="bo-actions">
+                    @* Pas d'appel au chargement : seul le clic consomme des crédits. *@
+                    <Button Disabled="isSending || string.IsNullOrWhiteSpace(message)" OnClick="SendAsync">@(isSending ? "Envoi…" : "Envoyer")</Button>
+                    @if (response is not null)
+                    {
+                        <DisplayBadge Value="Badges.ForLlm(response.Status)" />
+                    }
+                </div>
+                <div class="bo-response" role="status">
+                    <div class="eyebrow">Réponse</div>
+                    @if (response is null)
+                    {
+                        <div class="subhead eb-muted">La réponse du modèle s’affiche ici.</div>
+                    }
+                    else
+                    {
+                        <div class="subhead">@response.Content</div>
+                        @if (response.Error is not null)
+                        {
+                            <div class="footnote bo-error">@response.Error</div>
+                        }
+                    }
+                </div>
+            </div>
+        </ListSection>
+
+        <ListSection Header="Système">
+            <ListRow Compact="true">
+                <Title>Version</Title>
+                <Trailing><span class="body eb-num eb-muted">@ServerVersion.Current</span></Trailing>
+            </ListRow>
+            <ListRow Compact="true">
+                <Title>Environnement</Title>
+                <Trailing><span class="body eb-muted">@Environment.EnvironmentName</span></Trailing>
+            </ListRow>
+            <ListRow Compact="true">
+                <Title>Démarré le</Title>
+                <Trailing><span class="body eb-num eb-muted">@FrenchDates.Moment(ServerVersion.StartedAt)</span></Trailing>
+            </ListRow>
+        </ListSection>
+    </div>
+</div>
+
+@code {
+    private const string Prompt = "Réponds en une phrase.";
+
+    private string? message;
+    private LlmResponse? response;
+    private bool isSending;
+
+    private async Task SendAsync()
+    {
+        isSending = true;
+        response = null;
+        response = await LlmClient.SendAsync(new LlmRequest(Prompt, message!), CancellationToken.None);
+        isSending = false;
+    }
+
+    private void ToggleDailyGeneration(bool isStarted)
+    {
+        if (isStarted)
+        {
+            DailyGeneration.Start();
+        }
+        else
+        {
+            DailyGeneration.Stop();
+        }
+    }
+}

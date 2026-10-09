@@ -14,14 +14,21 @@ src/
 ├── Api/                     racine de composition : Program.cs, DI, ServerVersion (/health, back-office)
 │   ├── Features/
 │   │   ├── CollectHeadlines/ collecte, appelée en mémoire (génération, back-office)
-│   │   └── GenerateRecap/   Endpoint (Add…/Map…), Handler (+ Command, Result ; type → pipeline et artefact),
-│   │                        Recap (modèle, RecapType), RecapContract (JSON publié, ADR-008),
-│   │                        IRecapWriter (GenerationAgent : prompt + validation, TestRecapWriter)
+│   │   ├── GenerateRecap/   Endpoint (Add…/Map…), Handler (+ Command, Result ; type → pipeline),
+│   │   │                    IRecapWriter (GenerationAgent : prompt + validation, TestRecapWriter)
+│   │   ├── ReadPublishedRecap/ lecture du récap publié à la source, appelée en mémoire (back-office)
+│   │   └── ToggleDailyGeneration/ DailyGenerationSwitch : génération quotidienne démarrée ou arrêtée (back-office)
+│   ├── Shared/              types servant à plusieurs slices : Recap (modèle, RecapType → libellé et artefact),
+│   │                        RecapContract (JSON publié, ADR-008 : sérialisation et relecture)
 │   └── BackOffice/          Blazor Server, servi sous /back-office
+│       ├── Components/      composants du design system en Razor (markup de bundle.js), GenerateButton
+│       ├── Display/         résultats → libellés, badges, dates FR, dernier récap : testés, sans Blazor
+│       └── Layout/, Pages/  coquille et écrans (Accueil, Récaps, Flux RSS, Réglages)
 └── Infrastructure/          implémentations des dépendances sortantes
     ├── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
     ├── Llm/                 ILlmClient : AnthropicLlmClient (erreurs SDK → LlmStatus)
-    └── Publication/         IPublicationRepository : GithubPublicationRepository (API Contents GitHub, erreurs → PublicationResult)
+    └── Publication/         IPublicationRepository : GithubPublicationRepository (API Contents GitHub, publication et
+                             lecture sans CDN ; erreurs → PublicationResult, ArtifactReadResult)
 ```
 
 **Pas de MediatR.** Les handlers sont des classes ordinaires, injectées et appelées directement par
@@ -49,8 +56,17 @@ Trois dépendances sortantes doivent rester derrière un contrat, chacune pour u
 cas où » ajoute de l'indirection sans bénéfice.
 
 Règle générale : une abstraction devient partagée quand un **deuxième** appelant la réclame, pas
-avant. `Api/Shared/` n'existe pas tant qu'aucun type ne sert à deux slices : on le crée à ce
-moment-là, et ce n'est pas un endroit où ranger les choses par défaut.
+avant. `Api/Shared/` ne contient que des types qui servent à au moins deux slices (le récap et son
+contrat, depuis `ReadPublishedRecap`) : ce n'est pas un endroit où ranger les choses par défaut.
+
+## Back-office — design
+
+Avant tout travail d'interface du back-office, lire **[`server/design.md`](../design.md)** : lien
+vers les maquettes (source de vérité, pas de copie dans le dépôt), correspondance maquettes ↔ pages
+Blazor et articulation avec le design system.
+
+Une décision d'affichage (badge, texte, choix d'un récap) va dans `BackOffice/Display/` avec son
+test, jamais dans un `.razor`.
 
 ## Ce qui est interdit
 
@@ -79,7 +95,7 @@ Un changement de contrat exige un ADR et une vérification côté app — jamais
 serveur.
 
 La forme cible est fixée au § 7 du glossaire : sept catégories ordonnées, une à deux brèves par
-catégorie, un titre et un résumé de 200 caractères maximum par brève. **L'artefact publié
+catégorie, un titre et un résumé visé à 200 caractères (toléré jusqu'à 300) par brève. **L'artefact publié
 aujourd'hui (par l'ancien serveur) a une autre forme** : voir le § 9 du glossaire.
 
 ## Nommage C#
@@ -99,7 +115,7 @@ Clés lues dans le Secret Manager en développement et dans les variables d'envi
 
 | Clé | Rôle |
 |---|---|
-| `GithubToken` | publication — **vide en local**, sinon on écrase la production ; absent → publication en échec (502) |
+| `GithubToken` | publication — **vide en local**, sinon on écrase la production ; absent → publication en échec (502), lecture sans jeton (dépôt public) |
 | `Anthropic:ApiKey` | API Claude — user secrets en local, `Anthropic__ApiKey` en production |
 | `Anthropic:Model` | modèle Claude — `claude-haiku-4-5` en Development, `claude-opus-5-5` sinon |
 
@@ -108,7 +124,9 @@ Aucun secret en clair dans le dépôt, y compris dans `.agentsworkspace/`.
 ## Le job quotidien
 
 Quartz, `0 0 17 * * ?`, fuseau du conteneur (`Europe/Paris`). Il enchaîne collecte, génération,
-publication, puis notifie sur ntfy en cas d'échec.
+publication, puis notifie sur ntfy en cas d'échec. Il ne génère rien si la génération quotidienne
+est arrêtée depuis le back-office (`DailyGenerationSwitch`, en mémoire : repart démarrée au
+redémarrage).
 
 Il tourne **aussi dans la stack locale**. Une stack laissée allumée à 17 h avec un `GithubToken`
 renseigné publie en production.
@@ -128,3 +146,7 @@ dotnet run --project server/src/Api
 
 SDK .NET 10 (`global.json`), versions de paquets centralisées (`Directory.Packages.props`),
 warnings traités en erreurs (`Directory.Build.props`).
+
+Image Docker : contexte de build = **racine du dépôt** (ADR-009). `Api.csproj` copie au build
+`tokens.css`, `bundle.css` et le logo de `design-system/` dans `wwwroot/design-system/` (ignoré par
+git) : on modifie toujours `design-system/`, jamais la copie.

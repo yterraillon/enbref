@@ -1,4 +1,5 @@
 using EnBref.Api.Features.GenerateRecap;
+using EnBref.Api.Shared;
 
 namespace EnBref.Api.Tests.Features.GenerateRecap;
 

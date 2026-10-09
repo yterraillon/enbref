@@ -1,3 +1,4 @@
+using EnBref.Api.Shared;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace EnBref.Api.Features.GenerateRecap;

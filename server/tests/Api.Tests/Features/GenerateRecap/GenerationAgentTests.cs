@@ -1,5 +1,6 @@
 using System.Text.Json;
 using EnBref.Api.Features.GenerateRecap;
+using EnBref.Api.Shared;
 using EnBref.Infrastructure.Llm;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -87,6 +88,16 @@ public class GenerationAgentTests
     public async Task Two_briefs_in_a_category_are_accepted()
     {
         var output = Output(category => category == "sport" ? 2 : 1);
+
+        var result = await Agent(StubLlmClient.Completed(output)).WriteAsync(Context, CancellationToken.None);
+
+        await Assert.That(result.IsSuccessful).IsTrue();
+    }
+
+    [Test]
+    public async Task Summary_between_target_and_limit_passes()
+    {
+        var output = Output(summary: new string('a', (GenerationAgent.TargetSummaryLength + GenerationAgent.MaxSummaryLength) / 2));
 
         var result = await Agent(StubLlmClient.Completed(output)).WriteAsync(Context, CancellationToken.None);
 

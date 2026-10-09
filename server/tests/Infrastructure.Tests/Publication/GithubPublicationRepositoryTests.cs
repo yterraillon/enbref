@@ -82,14 +82,56 @@ public class GithubPublicationRepositoryTests
         await Assert.That(result.Error).Contains("422");
     }
 
+    [Test]
+    public async Task Artifact_is_read_raw_without_token()
+    {
+        var (repository, handler) = Repository("", Json(HttpStatusCode.OK, """{"date":"2026-10-09"}"""));
+
+        var result = await repository.ReadAsync("demo.json", CancellationToken.None);
+
+        await Assert.That(result.IsSuccessful).IsTrue();
+        await Assert.That(result.Content).IsEqualTo("""{"date":"2026-10-09"}""");
+
+        var get = handler.Requests[0];
+        await Assert.That(get.Method).IsEqualTo(HttpMethod.Get);
+        await Assert.That(get.Uri).IsEqualTo("https://api.github.test/repos/yterraillon/yterraillon.github.io/contents/cdn/en-bref/data/demo.json");
+        await Assert.That(get.Accept).Contains("application/vnd.github.raw+json");
+        await Assert.That(get.Authorization).IsNull();
+    }
+
+    [Test]
+    public async Task Artifact_is_read_with_token_when_set()
+    {
+        var (repository, handler) = Repository("jeton", Json(HttpStatusCode.OK, "{}"));
+
+        await repository.ReadAsync("latest.json", CancellationToken.None);
+
+        await Assert.That(handler.Requests[0].Authorization).IsEqualTo("Bearer jeton");
+    }
+
+    [Test]
+    [Arguments(HttpStatusCode.NotFound, "absent", true)]
+    [Arguments(HttpStatusCode.InternalServerError, "500", false)]
+    public async Task Unreadable_artifact_is_an_error(HttpStatusCode status, string expected, bool isMissing)
+    {
+        var (repository, _) = Repository("", Json(status, "{}"));
+
+        var result = await repository.ReadAsync("demo.json", CancellationToken.None);
+
+        await Assert.That(result.IsSuccessful).IsFalse();
+        await Assert.That(result.Content).IsNull();
+        await Assert.That(result.Error).Contains(expected);
+        await Assert.That(result.IsMissing).IsEqualTo(isMissing);
+    }
+
     private sealed class StubHandler(HttpResponseMessage[] responses) : HttpMessageHandler
     {
-        public List<(HttpMethod Method, string Uri, string? Body, string? Authorization)> Requests { get; } = [];
+        public List<(HttpMethod Method, string Uri, string? Body, string? Authorization, string Accept)> Requests { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             var body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
-            Requests.Add((request.Method, request.RequestUri!.GetLeftPart(UriPartial.Path), body, request.Headers.Authorization?.ToString()));
+            Requests.Add((request.Method, request.RequestUri!.GetLeftPart(UriPartial.Path), body, request.Headers.Authorization?.ToString(), request.Headers.Accept.ToString()));
             return responses[Requests.Count - 1];
         }
     }

@@ -10,4 +10,22 @@
   <ItemGroup>
     <ProjectReference Include="../Infrastructure/Infrastructure.csproj" />
   </ItemGroup>
+  <!-- Design system : design-system/ à la racine du dépôt reste la seule source (ADR-009). -->
+  <PropertyGroup>
+    <DesignSystemDirectory>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '..', '..', '..', 'design-system'))</DesignSystemDirectory>
+  </PropertyGroup>
+  <ItemGroup>
+    <DesignSystemAsset Include="$(DesignSystemDirectory)tokens.css" RelativePath="design-system/tokens.css" />
+    <DesignSystemAsset Include="$(DesignSystemDirectory)components/bundle.css" RelativePath="design-system/bundle.css" />
+    <DesignSystemAsset Include="$(DesignSystemDirectory)assets/logo/app-icon.png" RelativePath="design-system/app-icon.png" />
+  </ItemGroup>
+  <!-- Copie dans wwwroot/design-system/ (ignoré par git) avant la découverte des assets statiques :
+       le serveur de développement ne sert que des fichiers présents sous wwwroot/ (ADR-009). -->
+  <Target Name="CopyDesignSystem" BeforeTargets="ResolveProjectStaticWebAssets">
+    <Copy SourceFiles="@(DesignSystemAsset)" DestinationFiles="@(DesignSystemAsset->'$(MSBuildProjectDirectory)/wwwroot/%(RelativePath)')" SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <Content Remove="wwwroot/design-system/**" />
+      <Content Include="wwwroot/design-system/**" />
+    </ItemGroup>
+  </Target>
 </Project>

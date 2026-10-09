@@ -6,6 +6,11 @@ Application Swift 6 / SwiftUI, **iOS 26 minimum**.
 > conventions Swift (structure des vues, gestion d'état, injection) seront écrites au portage, à
 > partir du code réel — pas inventées ici.
 
+## Design
+
+Avant tout travail d'interface, lire **[`ios/design.md`](../design.md)** : lien vers les maquettes
+(source de vérité, pas de copie dans le dépôt) et articulation avec le design system commun.
+
 ## Ce que l'app consomme
 
 Un fichier statique sur GitHub Pages :

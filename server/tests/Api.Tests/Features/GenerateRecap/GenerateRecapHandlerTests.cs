@@ -1,4 +1,5 @@
 using EnBref.Api.Features.GenerateRecap;
+using EnBref.Api.Shared;
 using EnBref.Api.Tests.Features.CollectHeadlines;
 using EnBref.Infrastructure.Collection;
 using EnBref.Infrastructure.Llm;

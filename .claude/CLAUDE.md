@@ -65,7 +65,7 @@ Deux environnements, pas de tier preview. Détail dans `docs/deployment.md`.
 | | Local | Production |
 |---|---|---|
 | Orchestration | `infra/compose.local.yml` | dépôt d'infrastructure `checquy` |
-| Image | buildée depuis `server/` | `ghcr.io/yterraillon/enbref/enbref-server:<CalVer>` |
+| Image | buildée depuis `server/` et `design-system/` (ADR-009) | `ghcr.io/yterraillon/enbref/enbref-server:<CalVer>` |
 | Hôte | poste de dev | NAS Synology `therook` |
 
 Versionnement **CalVer** `YYYY.MM.DD.NN` (ADR-004).
@@ -106,6 +106,13 @@ lecture des secrets en variables d'environnement.
 - **End-to-end** : Bruno, `tests/endtoend/` — `enbref/` vérifie chaque jour le récap publié sur le
   CDN, `dev/` appelle le déclencheur de génération local, `smoke/` génère un récap de test (sans LLM)
   et vérifie sa publication sur `test.json`. Voir `tests/README.md`.
+  
+## Design system
+L'UI suit le design system EnBref dans `design-system/`.
+Lire `design-system/README.md` avant tout travail d'interface.
+- Admin web : importer `tokens.css` puis `components/bundle.css` ; n'utiliser que les variables CSS (`var(--accent)`…), jamais de valeur en dur.
+- iOS : suivre le tableau « Correspondance SwiftUI » du README ; valeurs de référence dans `tokens.json`.
+- Toute nouvelle valeur passe d'abord par `tokens.json`.
 
 ## General Behavior
 

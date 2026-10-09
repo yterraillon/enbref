@@ -5,6 +5,7 @@ on:
     branches-ignore: [main]   # main est couvert par release-server.yml
     paths:
       - 'server/**'
+      - 'design-system/**'
       - '.github/workflows/build-server.yml'
 
 concurrency:

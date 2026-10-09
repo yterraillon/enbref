@@ -1,3 +1,5 @@
+using EnBref.Api.Shared;
+
 namespace EnBref.Api.Features.GenerateRecap;
 
 /// <summary>Ce que le rédacteur reçoit pour écrire un récap.</summary>

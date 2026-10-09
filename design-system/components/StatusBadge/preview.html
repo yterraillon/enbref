@@ -1,0 +1,17 @@
+<!-- @dsCard group="Admin web" height=80 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>StatusBadge — EnBref</title>
+<style>html,body{margin:0;background:var(--bg-grouped)}</style></head>
+<body>
+<div id="root" class="eb-root eb-screen"></div>
+<script>
+  var E = window.EnBref, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{display:'flex',gap:10,flexWrap:'wrap',padding:'0 16px'}},
+  h(E.StatusBadge, {tone:'success'}, 'Publié'),
+  h(E.StatusBadge, {tone:'warning'}, 'Brouillon'),
+  h(E.StatusBadge, {tone:'danger'}, 'Échec de génération'),
+  h(E.StatusBadge, null, 'Programmé 7:30')));
+</script>
+</body>
+</html>

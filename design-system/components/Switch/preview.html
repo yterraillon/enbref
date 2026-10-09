@@ -1,0 +1,16 @@
+<!-- @dsCard group="Contrôles" height=80 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Switch — EnBref</title>
+<style>html,body{margin:0;background:var(--bg-grouped)}</style></head>
+<body>
+<div id="root" class="eb-root eb-screen"></div>
+<script>
+  var E = window.EnBref, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h('div', {style:{display:'flex',gap:20,alignItems:'center',padding:'0 16px'}},
+  h(E.Switch, {defaultChecked:true, label:'Aperçu des titres'}),
+  h(E.Switch, {label:'Suivre Dynamic Type'}),
+  h(E.Switch, {defaultChecked:true, disabled:true, label:'Verrouillé'})));
+</script>
+</body>
+</html>

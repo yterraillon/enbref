@@ -1,6 +1,165 @@
 @page "/back-office"
+@using EnBref.Api.Features.CollectHeadlines
+@using EnBref.Api.Features.GenerateRecap
+@using EnBref.Api.Features.ReadPublishedRecap
+@using EnBref.Api.Features.ToggleDailyGeneration
+@using EnBref.Api.Shared
+@using EnBref.Infrastructure.Collection
+@using EnBref.Infrastructure.Llm
+@using Microsoft.Extensions.Options
+@inject GenerateRecapHandler GenerateRecap
+@inject ReadPublishedRecapHandler ReadPublishedRecap
+@inject CollectHeadlinesHandler CollectHeadlines
+@inject DailyGenerationSwitch DailyGeneration
+@inject IOptions<AnthropicOptions> AnthropicOptions
+@inject TimeProvider TimeProvider
 
-<PageTitle>EnBref — Back-office</PageTitle>
+<PageTitle>EnBref — Accueil</PageTitle>
 
-<h1>Back-office</h1>
-<p>Crédits, disponibilité des LLM et génération manuelle : étape 4.</p>
+<div class="bo-page">
+    <LargeTitle Eyebrow="@FrenchDates.Day(DateOnly.FromDateTime(TimeProvider.GetLocalNow().DateTime))" Title="Aujourd’hui" />
+
+    <Card Label="Récap du jour">
+        <div class="bo-card-title">
+            <h2 class="headline">Récap du jour</h2>
+            @if (Read(RecapType.Daily) is { } daily)
+            {
+                <DisplayBadge Value="Badges.ForArtifact(RecapType.Daily, daily)" />
+            }
+        </div>
+        <p class="subhead eb-muted bo-text">@(Read(RecapType.Daily) is { } read ? RecapTexts.Daily(read) : "Lecture…")</p>
+        <div class="bo-actions">
+            @* Une génération consomme des crédits : elle ne part que sur ce clic, confirmé. *@
+            <GenerateButton Type="RecapType.Demo" Icon="IconName.Play" Disabled="isGenerating" OnGenerate="GenerateAsync">Générer un récap de démo</GenerateButton>
+            <GenerateButton Type="RecapType.Test" Variant="ButtonVariant.Plain" Disabled="isGenerating" OnGenerate="GenerateAsync">Publier un récap de test</GenerateButton>
+        </div>
+        @if (isGenerating)
+        {
+            <p class="subhead bo-text">Génération…</p>
+        }
+        else if (generationFeedback is not null)
+        {
+            <p class="subhead bo-text" role="status">@generationFeedback</p>
+        }
+    </Card>
+
+    <div class="bo-tiles">
+        <Card Class="bo-tile" Label="Flux RSS">
+            <h2 class="eyebrow eb-caps eb-muted">Flux RSS</h2>
+            @if (collection is null)
+            {
+                <div class="subhead eb-muted">Collecte…</div>
+            }
+            else
+            {
+                <div class="bo-tile-figure">
+                    <span class="large-title eb-num">@collection.Headlines.Count</span>
+                    <span class="subhead">titres collectés</span>
+                </div>
+                <div><DisplayBadge Value="Badges.ForCollection(collection)" /></div>
+            }
+            <a href="back-office/feeds" class="bo-tile-link callout">Voir les flux</a>
+        </Card>
+
+        <Card Class="bo-tile" Label="Modèle">
+            <h2 class="eyebrow eb-caps eb-muted">Modèle</h2>
+            <div class="article-title-l">@AnthropicOptions.Value.Model</div>
+            <div class="footnote eb-muted">Rédige les brèves à partir des titres collectés.</div>
+            <a href="back-office/settings" class="bo-tile-link callout">Tester le modèle</a>
+        </Card>
+
+        <Card Class="bo-tile" Label="Génération quotidienne">
+            <h2 class="eyebrow eb-caps eb-muted">Génération quotidienne</h2>
+            <div class="bo-tile-switch">
+                <span class="body">@RecapTexts.DailyGeneration(DailyGeneration.IsStarted)</span>
+                <Switch Checked="DailyGeneration.IsStarted" CheckedChanged="ToggleDailyGeneration" Label="Génération quotidienne" />
+            </div>
+            <div class="footnote eb-muted">Sans effet tant que le job quotidien n’existe pas.</div>
+        </Card>
+    </div>
+
+    @if (reads is not null)
+    {
+        @if (MostRecentRecap.Pick(reads) is { } latestType && reads[latestType].Recap is { } latest)
+        {
+            <ListSection Header="Dernier récap généré" Footer="@($"{latestType.Artifact()} · {FrenchDates.Long(latest.Date)}")">
+                <ListRow>
+                    <Title><span class="headline">@latestType.Label()</span></Title>
+                    <Subtitle>@RecapCounts.Describe(latest)</Subtitle>
+                    <Trailing><DisplayBadge Value="Badges.ForArtifact(latestType, reads[latestType])" /></Trailing>
+                </ListRow>
+                @foreach (var (category, briefs) in RecapCounts.CategoriesWithBriefs(latest))
+                {
+                    <ListRow Compact="true">
+                        <Title>@category.Label()</Title>
+                        <Trailing><span class="subhead eb-num eb-muted">@RecapCounts.Briefs(briefs.Count)</span></Trailing>
+                    </ListRow>
+                }
+                <ListRow Compact="true" Chevron="true" Href="@($"back-office/recaps?type={latestType}")">
+                    <Title><span class="callout bo-link">Ouvrir le récap</span></Title>
+                </ListRow>
+            </ListSection>
+        }
+        else
+        {
+            <Card Class="bo-card--empty" Label="Dernier récap généré">
+                <h2 class="headline">Aucun récap publié</h2>
+                <p class="subhead eb-muted bo-text">@RecapTexts.NoReadableRecap()</p>
+            </Card>
+        }
+    }
+</div>
+
+@code {
+    private Dictionary<RecapType, ReadPublishedRecapResult>? reads;
+    private CollectionResult? collection;
+    private bool isGenerating;
+    private string? generationFeedback;
+
+    [Inject(Key = FeedReaderKeys.Rss)]
+    private IFeedReader RssFeedReader { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var collecting = CollectAsync();
+        var results = await Task.WhenAll(Enum.GetValues<RecapType>()
+            .Select(async type => (Type: type, Result: await ReadPublishedRecap.HandleAsync(type, CancellationToken.None))));
+        reads = results.ToDictionary(read => read.Type, read => read.Result);
+        StateHasChanged();
+        await collecting;
+    }
+
+    private ReadPublishedRecapResult? Read(RecapType type) => reads?.GetValueOrDefault(type);
+
+    private async Task CollectAsync()
+    {
+        collection = await CollectHeadlines.HandleAsync(RssFeedReader, CancellationToken.None);
+        StateHasChanged();
+    }
+
+    private async Task GenerateAsync(RecapType type)
+    {
+        isGenerating = true;
+        generationFeedback = null;
+        var result = await GenerateRecap.HandleAsync(new GenerateRecapCommand(type, Publish: true), CancellationToken.None);
+        generationFeedback = Generations.Feedback(type, result);
+        if (reads is not null)
+        {
+            reads[type] = await ReadPublishedRecap.HandleAsync(type, CancellationToken.None);
+        }
+
+        isGenerating = false;
+    }
+
+    private void ToggleDailyGeneration(bool isStarted)
+    {
+        if (isStarted)
+        {
+            DailyGeneration.Start();
+        }
+        else
+        {
+            DailyGeneration.Stop();
+        }
+    }
+}

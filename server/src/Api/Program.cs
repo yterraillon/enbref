@@ -3,6 +3,8 @@ using EnBref.Api;
 using EnBref.Api.BackOffice;
 using EnBref.Api.Features.CollectHeadlines;
 using EnBref.Api.Features.GenerateRecap;
+using EnBref.Api.Features.ReadPublishedRecap;
+using EnBref.Api.Features.ToggleDailyGeneration;
 using EnBref.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
@@ -17,6 +19,8 @@ builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddCollectHeadlines();
 builder.Services.AddGenerateRecap();
+builder.Services.AddReadPublishedRecap();
+builder.Services.AddToggleDailyGeneration();
 
 var app = builder.Build();
 

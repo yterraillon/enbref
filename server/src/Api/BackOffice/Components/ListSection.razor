@@ -1,0 +1,22 @@
+<section class="eb-section" aria-label="@Header">
+    @if (Header is not null)
+    {
+        <div class="eb-section-head footnote">@Header</div>
+    }
+    <div class="eb-card">@ChildContent</div>
+    @if (Footer is not null)
+    {
+        <div class="eb-section-foot footnote">@Footer</div>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public string? Header { get; set; }
+
+    [Parameter]
+    public string? Footer { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

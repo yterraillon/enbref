@@ -3,39 +3,64 @@
 @using EnBref.Infrastructure.Collection
 @inject CollectHeadlinesHandler CollectHeadlines
 
-<PageTitle>EnBref — Flux</PageTitle>
+<PageTitle>EnBref — Flux RSS</PageTitle>
 
-<h1>Flux</h1>
+<div class="bo-page">
+    <LargeTitle Eyebrow="@(collection is null ? "Collecte…" : RecapCounts.Count(collection.Headlines.Count, "titre collecté", "titres collectés"))" Title="Flux RSS">
+        <Trailing>
+            <Button Disabled="isCollecting" OnClick="CollectAsync">@(isCollecting ? "Collecte…" : "Recharger les flux")</Button>
+        </Trailing>
+    </LargeTitle>
 
-<button @onclick="CollectAsync" disabled="@isCollecting">@(isCollecting ? "Collecte…" : "Recharger")</button>
-
-@if (collection is not null)
-{
-    <p>@collection.Headlines.Count titres collectés.</p>
-
-    @foreach (var feed in collection.Feeds)
+    @if (collection is not null)
     {
-        <section>
-            <h2>@feed.Feed.Source — @feed.Status (@feed.Headlines.Count)</h2>
-            <p><a href="@feed.Feed.Url" target="_blank">@feed.Feed.Url</a></p>
-            @if (feed.Error is not null)
+        <div class="bo-feeds">
+            @foreach (var feed in collection.Feeds)
             {
-                <p><strong>@feed.Error</strong></p>
+                var isExpanded = expanded.Contains(feed.Feed.Url);
+                <Card Class="bo-card--flush" Label="@feed.Feed.Source">
+                    <div class="bo-feed-head">
+                        <div class="bo-feed-title">
+                            <h2 class="article-title-l">@feed.Feed.Source</h2>
+                            <DisplayBadge Value="Badges.ForFeed(feed.Status)" />
+                        </div>
+                        <a href="@feed.Feed.Url" target="_blank" rel="noopener" class="footnote bo-feed-url">@feed.Feed.Url</a>
+                        @if (feed.Error is not null)
+                        {
+                            <div class="footnote bo-error">@feed.Error</div>
+                        }
+                        <div class="eyebrow eb-num bo-feed-count">@RecapCounts.Count(feed.Headlines.Count, "titre", "titres")</div>
+                    </div>
+                    @if (feed.Headlines.Count > 0)
+                    {
+                        <ol class="bo-headlines">
+                            @foreach (var headline in isExpanded ? feed.Headlines : feed.Headlines.Take(CollapsedCount))
+                            {
+                                <li class="subhead">@headline</li>
+                            }
+                        </ol>
+                    }
+                    @if (feed.Headlines.Count > CollapsedCount)
+                    {
+                        <div class="bo-feed-foot">
+                            <Button Variant="ButtonVariant.Plain" aria-expanded="@(isExpanded ? "true" : "false")" OnClick="() => Toggle(feed.Feed.Url)">
+                                @(isExpanded ? "Réduire" : $"Afficher les {feed.Headlines.Count} titres")
+                            </Button>
+                        </div>
+                    }
+                </Card>
             }
-            <ol>
-                @foreach (var headline in feed.Headlines)
-                {
-                    <li>@headline</li>
-                }
-            </ol>
-        </section>
+        </div>
     }
-}
+</div>
 
 @code {
+    private const int CollapsedCount = 6;
+
     [Inject(Key = FeedReaderKeys.Rss)]
     private IFeedReader RssFeedReader { get; set; } = null!;
 
+    private readonly HashSet<Uri> expanded = [];
     private CollectionResult? collection;
     private bool isCollecting;
 
@@ -46,5 +71,13 @@
         isCollecting = true;
         collection = await CollectHeadlines.HandleAsync(RssFeedReader, CancellationToken.None);
         isCollecting = false;
+    }
+
+    private void Toggle(Uri url)
+    {
+        if (!expanded.Remove(url))
+        {
+            expanded.Add(url);
+        }
     }
 }

@@ -68,6 +68,15 @@ bout sans consommer de crédits. Il n'écrase **jamais** `latest.json` ni `demo.
 
 **À ne pas dire** : récap de démo, récap jetable, dry run.
 
+### Récap publié
+**Code** : `PublishedRecap` · **UI** : « Récap publié »
+
+Le récap tel qu'il se trouve dans un artefact du dépôt de publication, lu à la source plutôt que sur
+le CDN, dont le cache masquerait une publication récente. C'est ce que le back-office affiche pour
+vérifier une publication, quel que soit le type de récap.
+
+**À ne pas dire** : récap en ligne, récap live, récap non caché, récap distant.
+
 ### Type de récap
 **Code** : `RecapType` (`Daily`, `Demo`, `Test`) · **UI** : « Type de récap »
 
@@ -112,8 +121,9 @@ n'est jamais affichée.
 ### Résumé
 **Code** : `Brief.Summary` · **UI** : « Résumé »
 
-Le corps d'une brève : **une phrase** qui explique le sujet annoncé par le titre. Plafonné à
-**200 caractères** — voir le budget de lecture (§ 7).
+Le corps d'une brève : **une phrase** qui explique le sujet annoncé par le titre. Visé à
+**200 caractères** (la longueur demandée au LLM), toléré jusqu'à **300** — voir le budget de lecture
+(§ 7).
 
 **À ne pas dire** : description, contenu, texte, body, synthèse.
 
@@ -214,6 +224,17 @@ collecte puis génération à 17 h ; en cas d'échec, trois tentatives avant ale
 
 **À ne pas dire** : build, création, compilation, traitement.
 
+### Génération quotidienne
+**Code** : `DailyGeneration` (`DailyGenerationSwitch`) · **UI** : « Génération quotidienne »,
+« démarrée » / « arrêtée »
+
+La génération du récap du jour, lancée chaque jour à 17 h par le job quotidien. Elle se démarre et
+s'arrête depuis le back-office ; arrêtée, aucun récap du jour n'est produit. « Génération » y est
+pris dans son sens complet, collecte → génération → publication (§ 9). « Job quotidien » reste le
+terme technique (Quartz) qui l'exécute.
+
+**À ne pas dire** : génération automatique, auto-génération, planification, cron, tâche planifiée.
+
 ### Publication
 **Code** : `Publication` · **UI** : « Publication »
 
@@ -279,13 +300,17 @@ Récap                                   1 par jour, identifié par sa date
 └── Catégorie × 7                       liste fixe, fermée, ordonnée (§ 3)
     └── Brève × 1 à 2                   soit 7 à 14 brèves par récap
         ├── Titre                       intitulé rédigé par le LLM
-        └── Résumé                      une phrase, ≤ 200 caractères
+        └── Résumé                      une phrase, visée à 200 caractères, ≤ 300
 ```
 
 **Le récap se lit en deux minutes au maximum.** À 220 mots par minute, cela donne environ 440 mots
 pour quatorze brèves, soit une trentaine de mots par brève. D'où le plafond de 200 caractères sur le
 résumé. Si une évolution assouplit l'une de ces bornes, l'autre doit être revue en conséquence — le
 budget de lecture est la contrainte, le plafond de caractères n'en est que la traduction.
+
+La tolérance à 300 caractères assouplit ce plafond : dans le pire cas (quatorze brèves à 300
+caractères), le récap dépasse les deux minutes. Le budget reste tenu en pratique parce que la cible
+demandée au LLM reste 200 et que ses dépassements observés restent proches (§ 9).
 
 ---
 
@@ -297,6 +322,7 @@ budget de lecture est la contrainte, le plafond de caractères n'en est que la t
 | latest (seul), récap courant | Récap du jour |
 | fixture, mock | Récap de démo |
 | dry run, récap jetable | Récap de test |
+| récap en ligne, récap live, récap non caché | Récap publié |
 | item, entrée, article, news, card | Brève |
 | headline, intitulé, accroche | Titre |
 | description, body, contenu, synthèse | Résumé |
@@ -307,6 +333,7 @@ budget de lecture est la contrainte, le plafond de caractères n'en est que la t
 | phase, stage, stade | Étape |
 | scraping, ingestion, crawl | Collecte |
 | push, upload, déploiement | Publication |
+| génération automatique, planification, cron | Génération quotidienne |
 | fichier, export, snapshot (d'un récap publié) | Artefact |
 | publieur, publisher (pour le dépôt de publication) | Dépôt de publication (`IPublicationRepository`) |
 | admin, console, dashboard | Back-office |
@@ -333,8 +360,9 @@ clients et le test Bruno quotidien.
 | `sections` (titre + texte libre) | `Category` portant des `Brief` | Pas de catégories fixes ni de brèves dans l'artefact publié. |
 | `title` (« Récap du … ») | — | Un récap n'a pas de titre au glossaire ; le champ est asserté par le test Bruno quotidien. |
 
-Absents du code à ce stade : l'historique, les
-**crédits** et la **disponibilité**. Le back-office n'est qu'une coquille.
+Absents du code à ce stade : l'historique, les **crédits** et la **disponibilité**. Le back-office
+affiche les récaps publiés et déclenche les récaps de démo et de test ; la génération quotidienne
+s'y bascule mais reste sans effet tant que le job quotidien n'existe pas.
 
 ### Autres écarts
 
@@ -345,15 +373,17 @@ Absents du code à ce stade : l'historique, les
   terme est à définir ici avant d'être implémenté.
 
 - **`.claude/CLAUDE.md` § Project Overview** — employait « récap de test » pour désigner le **récap
-  de démo** (§ 2) ; corrigé. « Le récap du jour non caché » désigne un affichage back-office qui
-  reste à nommer si on l'implémente.
+  de démo** (§ 2) ; corrigé. « Le récap du jour rechargé sans cache » y désigne le **récap publié**
+  (§ 2).
 - **Heure de génération** — 17 h, conformément au cron `0 0 17 * * ?` du job. L'ancien serveur mentionnait
   16 h comme cible ; c'est 17 h qui fait foi.
 - **Accentuation et nombre des catégories** — le glossaire retient « Économie » (accentué) et
   « Technologies & Science » comme libellés d'interface. À confirmer au premier rendu réel dans
   l'application.
-- **Plafond de 200 caractères sur le résumé** — dérivé du budget de lecture (§ 7), pas encore
-  éprouvé sur une génération réelle. À réévaluer après le premier récap produit par l'API Claude.
+- **Plafond du résumé** — dérivé du budget de lecture (§ 7). Au premier récap réel produit par
+  l'API Claude (9 octobre 2026), le modèle a écrit des résumés de 201 à 253 caractères pour une
+  consigne de 200, et la validation a rejeté le récap entier. D'où la séparation : 200 caractères
+  demandés, 300 tolérés. À réévaluer si les dépassements s'approchent de la tolérance.
 - **Aucune attribution de source** — les brèves ne citent pas les titres collectés dont elles
   proviennent. C'est un choix assumé pour la première version, pas un oubli. Le jour où
   l'attribution arrive, le lien brève → titre collecté devra être nommé ici avant d'être implémenté.

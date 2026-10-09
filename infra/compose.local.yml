@@ -19,8 +19,8 @@
 services:
   enbref-server:
     build:
-      context: ../server
-      dockerfile: src/Api/Dockerfile
+      context: ..   # racine du dépôt : l'image embarque design-system/ (ADR-009)
+      dockerfile: server/src/Api/Dockerfile
     container_name: enbref-local-server
     ports:
       - "8080:8080"

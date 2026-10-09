@@ -1,0 +1,39 @@
+<div class="@CssClass">
+    @if (Label is not null)
+    {
+        <label for="@Id" class="eb-field-label footnote">@Label</label>
+    }
+    <input id="@Id" class="body" placeholder="@Placeholder" aria-invalid="@(Error is not null ? "true" : null)"
+           value="@Value" @oninput="OnInputAsync" />
+    @if ((Error ?? Hint) is { } hint)
+    {
+        <div class="eb-field-hint footnote">@hint</div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Id { get; set; } = "";
+
+    [Parameter]
+    public string? Label { get; set; }
+
+    [Parameter]
+    public string? Placeholder { get; set; }
+
+    [Parameter]
+    public string? Hint { get; set; }
+
+    [Parameter]
+    public string? Error { get; set; }
+
+    [Parameter]
+    public string? Value { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ValueChanged { get; set; }
+
+    private string CssClass => Error is null ? "eb-field" : "eb-field eb-field--error";
+
+    private Task OnInputAsync(ChangeEventArgs change) => ValueChanged.InvokeAsync(change.Value as string);
+}
