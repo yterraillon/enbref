@@ -1,6 +1,98 @@
 @page "/back-office"
+@using EnBref.Api.Features.GenerateRecap
+@using EnBref.Api.Features.ReadPublishedRecap
+@using EnBref.Api.Features.ToggleDailyGeneration
+@using EnBref.Api.Shared
+@inject GenerateRecapHandler GenerateRecap
+@inject ReadPublishedRecapHandler ReadPublishedRecap
+@inject DailyGenerationSwitch DailyGeneration
 
 <PageTitle>EnBref — Back-office</PageTitle>
 
 <h1>Back-office</h1>
-<p>Crédits, disponibilité des LLM et génération manuelle : étape 4.</p>
+
+<section>
+    <h2>Dernier récap du jour</h2>
+    @if (dailyRecap is null)
+    {
+        <p>Lecture…</p>
+    }
+    else if (dailyRecap.Recap is { } recap)
+    {
+        <p>
+            Récap du jour du @recap.Date.ToString("dd/MM/yyyy") publié.
+            @if (!dailyRecap.IsFromToday)
+            {
+                <strong>Il ne date pas d'aujourd'hui.</strong>
+            }
+        </p>
+    }
+    else
+    {
+        <p><strong>@dailyRecap.Error</strong></p>
+    }
+    <p><a href="back-office/recaps?type=@RecapType.Daily">Voir le récap du jour</a></p>
+</section>
+
+<section>
+    <h2>Commandes</h2>
+    @* Une génération de démo consomme des crédits : elle ne part que sur ce clic. *@
+    <button @onclick="() => GenerateAsync(RecapType.Demo)" disabled="@isGenerating">Générer un récap de démo</button>
+    <button @onclick="() => GenerateAsync(RecapType.Test)" disabled="@isGenerating">Publier un récap de test</button>
+    @if (isGenerating)
+    {
+        <p>Génération…</p>
+    }
+    else if (generationFeedback is not null)
+    {
+        <p>@generationFeedback</p>
+    }
+</section>
+
+<section>
+    <h2>Génération quotidienne</h2>
+    <label>
+        <input type="checkbox" checked="@DailyGeneration.IsStarted" @onchange="ToggleDailyGeneration" />
+        Démarrée
+    </label>
+    <p><em>Sans effet tant que le job quotidien n'existe pas.</em></p>
+    @if (dailyGenerationFeedback is not null)
+    {
+        <p>@dailyGenerationFeedback</p>
+    }
+</section>
+
+@code {
+    private ReadPublishedRecapResult? dailyRecap;
+    private bool isGenerating;
+    private string? generationFeedback;
+    private string? dailyGenerationFeedback;
+
+    protected override async Task OnInitializedAsync() =>
+        dailyRecap = await ReadPublishedRecap.HandleAsync(RecapType.Daily, CancellationToken.None);
+
+    private async Task GenerateAsync(RecapType type)
+    {
+        isGenerating = true;
+        generationFeedback = null;
+        var result = await GenerateRecap.HandleAsync(new GenerateRecapCommand(type, Publish: true), CancellationToken.None);
+        generationFeedback = result.Failure is { } failure
+            ? $"Erreur lors de la {failure.Step.Label()} : {failure.Message}"
+            : $"{type.Label()} généré et publié.";
+        isGenerating = false;
+    }
+
+    private void ToggleDailyGeneration(ChangeEventArgs change)
+    {
+        if (change.Value is true)
+        {
+            DailyGeneration.Start();
+            dailyGenerationFeedback = "Génération quotidienne démarrée.";
+        }
+        else
+        {
+            DailyGeneration.Stop();
+            dailyGenerationFeedback = "Génération quotidienne arrêtée.";
+        }
+    }
+}

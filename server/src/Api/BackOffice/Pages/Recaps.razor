@@ -52,11 +52,22 @@
 @code {
     private static readonly System.Globalization.CultureInfo Culture = new("fr-FR");
 
+    [SupplyParameterFromQuery(Name = "type")]
+    private string? TypeQuery { get; set; }
+
     private RecapType type = RecapType.Daily;
     private ReadPublishedRecapResult? result;
     private bool isReading;
 
-    protected override Task OnInitializedAsync() => ReadAsync();
+    protected override Task OnInitializedAsync()
+    {
+        if (Enum.TryParse<RecapType>(TypeQuery, ignoreCase: true, out var queried) && Enum.IsDefined(queried))
+        {
+            type = queried;
+        }
+
+        return ReadAsync();
+    }
 
     private async Task ReadAsync()
     {

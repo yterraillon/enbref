@@ -8,13 +8,14 @@ namespace EnBref.Api.Features.ReadPublishedRecap;
 /// <param name="Recap">Null si l'artefact est illisible ou ne suit pas le contrat.</param>
 /// <param name="Content">Contenu brut, conservé quand il ne suit pas le contrat.</param>
 /// <param name="Error">Null si le récap publié a été lu.</param>
-public sealed record ReadPublishedRecapResult(string Artifact, Recap? Recap, string? Content, string? Error)
+/// <param name="IsFromToday">Le récap publié porte la date du jour.</param>
+public sealed record ReadPublishedRecapResult(string Artifact, Recap? Recap, string? Content, string? Error, bool IsFromToday = false)
 {
     public bool IsSuccessful => Error is null;
 }
 
 /// <summary>Lit un récap publié à la source, sans passer par le CDN.</summary>
-public sealed class ReadPublishedRecapHandler(IPublicationRepository publicationRepository)
+public sealed class ReadPublishedRecapHandler(IPublicationRepository publicationRepository, TimeProvider timeProvider)
 {
     public async Task<ReadPublishedRecapResult> HandleAsync(RecapType type, CancellationToken cancellationToken)
     {
@@ -27,7 +28,9 @@ public sealed class ReadPublishedRecapHandler(IPublicationRepository publication
 
         try
         {
-            return new ReadPublishedRecapResult(artifact, RecapContract.Deserialize(content), content, Error: null);
+            var recap = RecapContract.Deserialize(content);
+            var today = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
+            return new ReadPublishedRecapResult(artifact, recap, content, Error: null, IsFromToday: recap.Date == today);
         }
         catch (JsonException exception)
         {

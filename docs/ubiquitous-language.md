@@ -223,6 +223,17 @@ collecte puis génération à 17 h ; en cas d'échec, trois tentatives avant ale
 
 **À ne pas dire** : build, création, compilation, traitement.
 
+### Génération quotidienne
+**Code** : `DailyGeneration` (`DailyGenerationSwitch`) · **UI** : « Génération quotidienne »,
+« démarrée » / « arrêtée »
+
+La génération du récap du jour, lancée chaque jour à 17 h par le job quotidien. Elle se démarre et
+s'arrête depuis le back-office ; arrêtée, aucun récap du jour n'est produit. « Génération » y est
+pris dans son sens complet, collecte → génération → publication (§ 9). « Job quotidien » reste le
+terme technique (Quartz) qui l'exécute.
+
+**À ne pas dire** : génération automatique, auto-génération, planification, cron, tâche planifiée.
+
 ### Publication
 **Code** : `Publication` · **UI** : « Publication »
 
@@ -317,6 +328,7 @@ budget de lecture est la contrainte, le plafond de caractères n'en est que la t
 | phase, stage, stade | Étape |
 | scraping, ingestion, crawl | Collecte |
 | push, upload, déploiement | Publication |
+| génération automatique, planification, cron | Génération quotidienne |
 | fichier, export, snapshot (d'un récap publié) | Artefact |
 | publieur, publisher (pour le dépôt de publication) | Dépôt de publication (`IPublicationRepository`) |
 | admin, console, dashboard | Back-office |
@@ -343,8 +355,9 @@ clients et le test Bruno quotidien.
 | `sections` (titre + texte libre) | `Category` portant des `Brief` | Pas de catégories fixes ni de brèves dans l'artefact publié. |
 | `title` (« Récap du … ») | — | Un récap n'a pas de titre au glossaire ; le champ est asserté par le test Bruno quotidien. |
 
-Absents du code à ce stade : l'historique, les
-**crédits** et la **disponibilité**. Le back-office n'est qu'une coquille.
+Absents du code à ce stade : l'historique, les **crédits** et la **disponibilité**. Le back-office
+affiche les récaps publiés et déclenche les récaps de démo et de test ; la génération quotidienne
+s'y bascule mais reste sans effet tant que le job quotidien n'existe pas.
 
 ### Autres écarts
 

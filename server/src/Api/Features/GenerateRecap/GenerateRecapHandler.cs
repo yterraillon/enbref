@@ -31,6 +31,18 @@ public enum GenerationStep
     Publication,
 }
 
+public static class GenerationSteps
+{
+    /// <summary>Libellé UI de l'étape, en minuscules : « Erreur lors de la collecte ».</summary>
+    public static string Label(this GenerationStep step) => step switch
+    {
+        GenerationStep.Collection => "collecte",
+        GenerationStep.Generation => "génération",
+        GenerationStep.Publication => "publication",
+        _ => throw new ArgumentOutOfRangeException(nameof(step), step, "Étape sans libellé."),
+    };
+}
+
 /// <param name="Step">Étape en échec.</param>
 /// <param name="Message">Cause lisible, renvoyée telle quelle par l'endpoint.</param>
 public sealed record GenerateRecapFailure(GenerationStep Step, string Message);

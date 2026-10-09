@@ -11,6 +11,22 @@ public class ReadPublishedRecapHandlerTests
             category => category,
             IReadOnlyList<Brief> (category) => [new Brief($"Titre {category}", "Une phrase.")]));
 
+    private static ReadPublishedRecapHandler Handler(StubPublicationRepository repository, int day = 9) =>
+        new(repository, new StubTimeProvider(new DateTimeOffset(2026, 10, day, 18, 0, 0, TimeSpan.Zero)));
+
+    [Test]
+    [Arguments(9, true)]
+    [Arguments(10, false)]
+    public async Task Tells_whether_the_published_recap_is_from_today(int today, bool isFromToday)
+    {
+        var repository = StubPublicationRepository.Succeeding();
+        repository.Artifacts["latest.json"] = RecapContract.Serialize(Recap);
+
+        var result = await Handler(repository, today).HandleAsync(RecapType.Daily, CancellationToken.None);
+
+        await Assert.That(result.IsFromToday).IsEqualTo(isFromToday);
+    }
+
     [Test]
     [Arguments(RecapType.Daily, "latest.json")]
     [Arguments(RecapType.Demo, "demo.json")]
@@ -20,7 +36,7 @@ public class ReadPublishedRecapHandlerTests
         var repository = StubPublicationRepository.Succeeding();
         repository.Artifacts[artifact] = RecapContract.Serialize(Recap);
 
-        var result = await new ReadPublishedRecapHandler(repository).HandleAsync(type, CancellationToken.None);
+        var result = await Handler(repository).HandleAsync(type, CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsTrue();
         await Assert.That(result.Artifact).IsEqualTo(artifact);
@@ -30,7 +46,7 @@ public class ReadPublishedRecapHandlerTests
     [Test]
     public async Task Missing_artifact_is_an_error()
     {
-        var result = await new ReadPublishedRecapHandler(StubPublicationRepository.Succeeding()).HandleAsync(RecapType.Demo, CancellationToken.None);
+        var result = await Handler(StubPublicationRepository.Succeeding()).HandleAsync(RecapType.Demo, CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsFalse();
         await Assert.That(result.Recap).IsNull();
@@ -44,7 +60,7 @@ public class ReadPublishedRecapHandlerTests
         var repository = StubPublicationRepository.Succeeding();
         repository.Artifacts["latest.json"] = content;
 
-        var result = await new ReadPublishedRecapHandler(repository).HandleAsync(RecapType.Daily, CancellationToken.None);
+        var result = await Handler(repository).HandleAsync(RecapType.Daily, CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsFalse();
         await Assert.That(result.Error).Contains("latest.json");

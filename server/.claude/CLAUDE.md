@@ -16,7 +16,8 @@ src/
 │   │   ├── CollectHeadlines/ collecte, appelée en mémoire (génération, back-office)
 │   │   ├── GenerateRecap/   Endpoint (Add…/Map…), Handler (+ Command, Result ; type → pipeline),
 │   │   │                    IRecapWriter (GenerationAgent : prompt + validation, TestRecapWriter)
-│   │   └── ReadPublishedRecap/ lecture du récap publié à la source, appelée en mémoire (back-office)
+│   │   ├── ReadPublishedRecap/ lecture du récap publié à la source, appelée en mémoire (back-office)
+│   │   └── ToggleDailyGeneration/ DailyGenerationSwitch : génération quotidienne démarrée ou arrêtée (back-office)
 │   ├── Shared/              types servant à plusieurs slices : Recap (modèle, RecapType → libellé et artefact),
 │   │                        RecapContract (JSON publié, ADR-008 : sérialisation et relecture)
 │   └── BackOffice/          Blazor Server, servi sous /back-office
@@ -111,7 +112,9 @@ Aucun secret en clair dans le dépôt, y compris dans `.agentsworkspace/`.
 ## Le job quotidien
 
 Quartz, `0 0 17 * * ?`, fuseau du conteneur (`Europe/Paris`). Il enchaîne collecte, génération,
-publication, puis notifie sur ntfy en cas d'échec.
+publication, puis notifie sur ntfy en cas d'échec. Il ne génère rien si la génération quotidienne
+est arrêtée depuis le back-office (`DailyGenerationSwitch`, en mémoire : repart démarrée au
+redémarrage).
 
 Il tourne **aussi dans la stack locale**. Une stack laissée allumée à 17 h avec un `GithubToken`
 renseigné publie en production.
