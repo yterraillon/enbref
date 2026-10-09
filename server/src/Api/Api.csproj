@@ -10,4 +10,10 @@
   <ItemGroup>
     <ProjectReference Include="../Infrastructure/Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Design system lié depuis la racine du dépôt, sans copie : le contexte Docker est la racine (ADR-009). -->
+    <Content Include="../../../design-system/tokens.css" Link="wwwroot/design-system/tokens.css" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../../design-system/components/bundle.css" Link="wwwroot/design-system/bundle.css" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../../design-system/assets/logo/app-icon.png" Link="wwwroot/design-system/app-icon.png" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

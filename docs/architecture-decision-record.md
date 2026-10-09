@@ -294,3 +294,39 @@ Les trois artefacts suivent la même forme :
   figé ; il est à supprimer à la main.
 - **Coût :** un champ ajouté plus tard (source, horodatage de génération) reste une évolution du
   contrat, donc un nouvel ADR.
+
+---
+
+## ADR-009 — Image serveur buildée depuis la racine du dépôt, avec le design system
+
+**Date :** 2026-10-09 · **Statut :** Accepté
+
+### Contexte
+
+Le back-office applique le design system EnBref : il doit servir `design-system/tokens.css`,
+`components/bundle.css` et le logo. Le design system vit à la racine du dépôt, partagé avec l'app
+iOS et les maquettes. Jusqu'ici, l'image serveur se buildait avec le contexte `./server`, qui ne voit
+pas `design-system/`. Copier les fichiers dans `server/` créerait une seconde source qui dériverait.
+
+### Décision
+
+- Le contexte de build de l'image serveur est **la racine du dépôt** (`infra/compose.local.yml`,
+  `pr-server.yml`, `release-server.yml`). Le Dockerfile reste `server/src/Api/Dockerfile`.
+- Un `.dockerignore` racine exclut tout sauf `server/` et `design-system/` ; `server/.dockerignore`
+  est supprimé.
+- `Api.csproj` **lie** les fichiers du design system dans `wwwroot/design-system/` (élément
+  `Content` avec `Link`), sans copie. Ils sont servis par `MapStaticAssets`, avec empreinte et
+  compression. `server/src/Api/wwwroot/` doit exister physiquement (il porte `back-office.css`) :
+  sans lui, l'hôte ne démarre pas, le manifeste des assets liés y pointant.
+- Les workflows serveur se déclenchent aussi sur `design-system/**`.
+
+### Conséquences
+
+- Une seule source pour les tokens et les styles de composants : un changement du design system
+  atteint le back-office au prochain build.
+- **Coût :** l'image serveur dépend d'un dossier frère. Le serveur ne se builde plus depuis
+  `server/` seul (`docker build ./server` échoue).
+- **Coût :** toute modification de `design-system/`, même destinée à iOS seul, déclenche une release
+  serveur CalVer (ADR-004), et la version de l'image couple désormais serveur et design system.
+- **Coût :** le contexte envoyé au démon Docker est plus large ; le `.dockerignore` racine, en
+  liste d'autorisation, doit suivre tout nouveau dossier dont l'image aurait besoin.

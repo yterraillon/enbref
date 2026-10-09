@@ -20,7 +20,8 @@ Tels qu'étiquetés dans les maquettes :
 ## Maquettes et design system
 
 Les maquettes appliquent le design system commun (`design-system/README.md`, tableau
-« Correspondance SwiftUI », valeurs dans `design-system/tokens.json`). En cas d'écart, le design
+« Correspondance SwiftUI », valeurs dans `design-system/tokens.json`). **La copie du dépôt fait
+foi**, pas un artefact de design system référencé par les maquettes. En cas d'écart, le design
 system fait foi pour les valeurs (couleurs, espacements, typographie), la maquette pour les écrans
 (contenu, disposition, parcours).
 

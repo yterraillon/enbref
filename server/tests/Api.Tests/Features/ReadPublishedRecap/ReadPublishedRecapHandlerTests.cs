@@ -49,6 +49,7 @@ public class ReadPublishedRecapHandlerTests
         var result = await Handler(StubPublicationRepository.Succeeding()).HandleAsync(RecapType.Demo, CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsFalse();
+        await Assert.That(result.IsMissing).IsTrue();
         await Assert.That(result.Recap).IsNull();
         await Assert.That(result.Content).IsNull();
     }
@@ -64,6 +65,7 @@ public class ReadPublishedRecapHandlerTests
 
         await Assert.That(result.IsSuccessful).IsFalse();
         await Assert.That(result.Error).Contains("latest.json");
+        await Assert.That(result.IsMissing).IsFalse();
         await Assert.That(result.Recap).IsNull();
         await Assert.That(result.Content).IsEqualTo(content);
     }

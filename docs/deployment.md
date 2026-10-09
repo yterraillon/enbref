@@ -6,7 +6,7 @@ preview.
 | | Local | Production |
 |---|---|---|
 | Orchestration | `infra/compose.local.yml` | `stacks/apps/enbref/docker-compose.yml` du dépôt `checquy` |
-| Image | buildée depuis `server/` | `ghcr.io/yterraillon/enbref/enbref-server:<CalVer>` |
+| Image | buildée depuis `server/` et `design-system/` | `ghcr.io/yterraillon/enbref/enbref-server:<CalVer>` |
 | Hôte | poste de dev | NAS Synology `therook`, derrière SWAG |
 | Données | `infra/data/` | `/volume1/docker/enbref/data` |
 
@@ -14,7 +14,7 @@ preview.
 
 | Workflow | Déclencheur | Fait |
 |---|---|---|
-| `build-server.yml` | push sur une branche ≠ `main` (`server/**`) | restore + build Release |
+| `build-server.yml` | push sur une branche ≠ `main` (`server/**`, `design-system/**`) | restore + build Release |
 | `pr-server.yml` | PR vers `main` | build, tests unitaires TUnit, puis smoke test Bruno (`tests/endtoend/smoke/`) sur l'image Docker démarrée dans le runner |
 | `release-server.yml` | push sur `main` (merge), ou à la demande | image poussée sur GHCR (`:<CalVer>` et `:latest`), tag et release GitHub |
 
@@ -31,7 +31,8 @@ Le job reste en `continue-on-error` jusqu'à un premier run vert de la publicati
 Le test quotidien du récap publié (`e2e-recap-publication.yml`) a été retiré ; la collection
 `tests/endtoend/enbref/` reste lançable à la main.
 
-Dockerfile : `server/src/Api/Dockerfile`, contexte de build `./server`.
+Dockerfile : `server/src/Api/Dockerfile`, contexte de build : la racine du dépôt (`.dockerignore`
+racine, qui ne laisse passer que `server/` et `design-system/`) — ADR-009.
 
 ## Local
 

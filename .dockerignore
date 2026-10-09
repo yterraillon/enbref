@@ -1,0 +1,20 @@
+# Contexte de build de l'image serveur : la racine du dépôt (ADR-009).
+# Tout est exclu, sauf ce que le Dockerfile copie.
+*
+!server
+!design-system
+
+**/.env
+**/.git
+**/.gitignore
+**/.vs
+**/.vscode
+**/.idea
+**/.claude
+**/*.*proj.user
+**/bin
+**/obj
+**/TestResults
+**/Dockerfile*
+**/docker-compose*
+**/README.md

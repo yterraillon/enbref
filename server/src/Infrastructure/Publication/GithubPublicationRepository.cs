@@ -64,7 +64,7 @@ public sealed class GithubPublicationRepository(
             using var response = await httpClient.SendAsync(request, cancellationToken);
             if (response.StatusCode == HttpStatusCode.NotFound)
             {
-                return new ArtifactReadResult(Content: null, $"Artefact absent : {artifact}.");
+                return new ArtifactReadResult(Content: null, $"Artefact absent : {artifact}.", IsMissing: true);
             }
 
             if (!response.IsSuccessStatusCode)

@@ -140,3 +140,6 @@ dotnet run --project server/src/Api
 
 SDK .NET 10 (`global.json`), versions de paquets centralisées (`Directory.Packages.props`),
 warnings traités en erreurs (`Directory.Build.props`).
+
+Image Docker : contexte de build = **racine du dépôt** (ADR-009). `Api.csproj` lie `tokens.css`,
+`bundle.css` et le logo de `design-system/` dans `wwwroot/design-system/`, sans copie.

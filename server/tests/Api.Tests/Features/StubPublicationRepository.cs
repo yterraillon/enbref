@@ -21,5 +21,5 @@ internal sealed class StubPublicationRepository(PublicationResult result) : IPub
     public Task<ArtifactReadResult> ReadAsync(string artifact, CancellationToken cancellationToken) =>
         Task.FromResult(Artifacts.TryGetValue(artifact, out var content)
             ? new ArtifactReadResult(content, Error: null)
-            : new ArtifactReadResult(Content: null, $"Artefact absent : {artifact}."));
+            : new ArtifactReadResult(Content: null, $"Artefact absent : {artifact}.", IsMissing: true));
 }

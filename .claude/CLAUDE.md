@@ -65,7 +65,7 @@ Deux environnements, pas de tier preview. Détail dans `docs/deployment.md`.
 | | Local | Production |
 |---|---|---|
 | Orchestration | `infra/compose.local.yml` | dépôt d'infrastructure `checquy` |
-| Image | buildée depuis `server/` | `ghcr.io/yterraillon/enbref/enbref-server:<CalVer>` |
+| Image | buildée depuis `server/` et `design-system/` (ADR-009) | `ghcr.io/yterraillon/enbref/enbref-server:<CalVer>` |
 | Hôte | poste de dev | NAS Synology `therook` |
 
 Versionnement **CalVer** `YYYY.MM.DD.NN` (ADR-004).

@@ -7,18 +7,23 @@ dans le dépôt. Un instantané daté ne s'ajoutera que si les maquettes sont fi
 
 ## Écrans
 
-Tels que nommés dans les maquettes, face aux pages Blazor (`src/Api/BackOffice/Pages/`) :
+Correspondance entre les écrans des maquettes et les pages Blazor (`src/Api/BackOffice/Pages/`).
+Le libellé retenu fait foi quand il diffère de la maquette.
 
-| Maquette | Page actuelle | Route |
-|---|---|---|
-| Aujourd'hui | `Home.razor` (« Accueil ») | `/back-office` |
-| Récaps | `Recaps.razor` | `/back-office/recaps` |
-| Sources | `Feeds.razor` (« Flux ») | `/back-office/feeds` |
-| Réglages | — (`Llm.razor`, `Info.razor` en partie) | — |
+| Maquette | Libellé retenu | Page | Route |
+|---|---|---|---|
+| Aujourd'hui | « Accueil » | `Home.razor` | `/back-office` |
+| Récaps | « Récaps » | `Recaps.razor` | `/back-office/recaps` |
+| Sources | « Flux RSS » | `Feeds.razor` | `/back-office/feeds` |
+| Réglages | « Réglages » | regroupe `Info.razor` et `Llm.razor` (à fusionner) | à définir |
+
+« Sources » est écarté : au glossaire, la source est le média, le flux ce qu'il publie, et la page
+liste des flux.
 
 ## Maquettes et design system
 
-Les maquettes appliquent le design system EnBref. Côté code, le back-office importe
+Les maquettes appliquent le design system EnBref. **La copie du dépôt (`design-system/`) fait foi**,
+pas l'artefact de design system que référence le canvas. Côté code, le back-office importe
 `design-system/tokens.css` puis `design-system/components/bundle.css`, et n'utilise que les
 variables CSS (`var(--accent)`…), jamais de valeur en dur ; lire `design-system/README.md` avant
 tout travail d'interface. En cas d'écart, le design system fait foi pour les valeurs (couleurs,

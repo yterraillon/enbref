@@ -110,9 +110,9 @@ public class GithubPublicationRepositoryTests
     }
 
     [Test]
-    [Arguments(HttpStatusCode.NotFound, "absent")]
-    [Arguments(HttpStatusCode.InternalServerError, "500")]
-    public async Task Unreadable_artifact_is_an_error(HttpStatusCode status, string expected)
+    [Arguments(HttpStatusCode.NotFound, "absent", true)]
+    [Arguments(HttpStatusCode.InternalServerError, "500", false)]
+    public async Task Unreadable_artifact_is_an_error(HttpStatusCode status, string expected, bool isMissing)
     {
         var (repository, _) = Repository("", Json(status, "{}"));
 
@@ -121,6 +121,7 @@ public class GithubPublicationRepositoryTests
         await Assert.That(result.IsSuccessful).IsFalse();
         await Assert.That(result.Content).IsNull();
         await Assert.That(result.Error).Contains(expected);
+        await Assert.That(result.IsMissing).IsEqualTo(isMissing);
     }
 
     private sealed class StubHandler(HttpResponseMessage[] responses) : HttpMessageHandler

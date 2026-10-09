@@ -6,6 +6,7 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - 'server/**'
+      - 'design-system/**'
       - 'tests/endtoend/**'
       - '.github/workflows/pr-server.yml'
 
@@ -59,7 +60,7 @@ jobs:
       - name: Build de l'image
         run: |
           VERSION="pr-${{ github.event.pull_request.number }}-${GITHUB_SHA::7}"
-          docker build ./server -f ./server/src/Api/Dockerfile --build-arg APP_VERSION="$VERSION" -t enbref-server:smoke
+          docker build . -f ./server/src/Api/Dockerfile --build-arg APP_VERSION="$VERSION" -t enbref-server:smoke
 
       - name: Démarrage du conteneur
         env:

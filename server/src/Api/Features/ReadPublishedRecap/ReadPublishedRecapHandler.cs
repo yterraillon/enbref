@@ -9,7 +9,8 @@ namespace EnBref.Api.Features.ReadPublishedRecap;
 /// <param name="Content">Contenu brut, conservé quand il ne suit pas le contrat.</param>
 /// <param name="Error">Null si le récap publié a été lu.</param>
 /// <param name="IsFromToday">Le récap publié porte la date du jour.</param>
-public sealed record ReadPublishedRecapResult(string Artifact, Recap? Recap, string? Content, string? Error, bool IsFromToday = false)
+/// <param name="IsMissing">L'artefact n'existe pas dans le dépôt de publication.</param>
+public sealed record ReadPublishedRecapResult(string Artifact, Recap? Recap, string? Content, string? Error, bool IsFromToday = false, bool IsMissing = false)
 {
     public bool IsSuccessful => Error is null;
 }
@@ -23,7 +24,7 @@ public sealed class ReadPublishedRecapHandler(IPublicationRepository publication
         var read = await publicationRepository.ReadAsync(artifact, cancellationToken);
         if (read.Content is not { } content)
         {
-            return new ReadPublishedRecapResult(artifact, Recap: null, Content: null, read.Error);
+            return new ReadPublishedRecapResult(artifact, Recap: null, Content: null, read.Error, IsMissing: read.IsMissing);
         }
 
         try
