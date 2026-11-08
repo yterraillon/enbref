@@ -12,7 +12,8 @@ EnBref produit un résumé quotidien de l'actualité à partir des titres de flu
   cache, le récap de démo, et permet de déclencher une génération à la main. D'autres métriques y
   seront ajoutées.
 - **ios/** — application Swift 6 / SwiftUI qui affiche le récap (voir `ios/.claude/CLAUDE.md`)
-- **web/** — landing page d'EnBref, HTML/CSS statique (voir `web/.claude/CLAUDE.md`)
+- **web/** — site vitrine d'EnBref (landing, pages légales, support), HTML/CSS statique, publié sur
+  <https://yterraillon.github.io/pages/enbref/> par `web.yml` — ADR-010 (voir `web/.claude/CLAUDE.md`)
 
 **Le serveur n'est pas exposé sur internet.** Il publie le récap sur GitHub Pages ; les clients
 lisent ce fichier statique. Toute fonctionnalité qui exigerait un appel client → serveur remet ce

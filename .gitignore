@@ -458,6 +458,11 @@ ios/fastlane/keys/
 # Agent workspace (scratch space for Claude analyses/plans — not committed)
 .agentsworkspace/*
 !.agentsworkspace/README.md
+# Design system copié dans le site vitrine (CI/CD, ou à la main en local) — ADR-010
+web/design-system/
+# Site assemblé par le workflow web.yml
+_site/
+
 # Test agent (artefacts du pipeline de génération de tests)
 .testagent/
 

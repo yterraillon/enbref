@@ -1,0 +1,124 @@
+name: Site vitrine
+
+# Lint du site à chaque PR ; déploiement sur yterraillon.github.io/pages/enbref/ au merge (ADR-010).
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'design-system/tokens.css'
+      - 'design-system/components/bundle.css'
+      - '.github/workflows/web.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - 'design-system/tokens.css'
+      - 'design-system/components/bundle.css'
+      - '.github/workflows/web.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PAGES_REPOSITORY: yterraillon/yterraillon.github.io
+  PAGES_PATH: pages/enbref
+  PAGES_URL: https://yterraillon.github.io/pages/enbref/
+
+jobs:
+  lint:
+    name: Assemblage et lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Le site publié = web/ + les deux feuilles du design system, copiées ici (une seule source).
+      - name: Assemblage du site
+        run: |
+          mkdir -p _site/design-system
+          rsync -a --exclude README.md --exclude .claude --exclude .htmlvalidate.json --exclude design-system web/ _site/
+          cp design-system/tokens.css design-system/components/bundle.css _site/design-system/
+          find _site -type f | sort
+
+      # Le site est servi sous /pages/enbref/ : un chemin absolu y pointerait hors du site.
+      - name: Aucun chemin absolu
+        run: |
+          if grep -rnE '(href|src)="/[^/]|"src": *"/' _site --include='*.html' --include='*.webmanifest'; then
+            echo "::error::Chemin absolu trouvé : utiliser un chemin relatif (./…)."
+            exit 1
+          fi
+
+      # Design system : n'utiliser que les variables CSS, jamais de couleur en dur.
+      - name: Aucune couleur en dur dans styles.css
+        run: |
+          if grep -nEi '#[0-9a-f]{3,8}\b|rgba?\(|hsla?\(' web/styles.css; then
+            echo "::error::Couleur en dur dans web/styles.css : utiliser var(--…)."
+            exit 1
+          fi
+
+      - name: Validation HTML
+        run: npx --yes html-validate@10.17.0 --config web/.htmlvalidate.json "_site/*.html"
+
+      - name: Liens internes
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --no-progress '_site/**/*.html'
+          fail: true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: _site/
+          include-hidden-files: false
+
+  deploy:
+    name: Déploiement sur GitHub Pages
+    needs: lint
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: web-deploy
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: _site
+
+      # Même jeton que la publication du récap par le serveur : écriture sur le dépôt de pages.
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.PAGES_REPOSITORY }}
+          token: ${{ secrets.ENBREF_GITHUB_TOKEN }}
+          path: pages-repo
+
+      - name: Copie dans pages/enbref
+        run: |
+          mkdir -p "pages-repo/$PAGES_PATH"
+          rsync -a --delete _site/ "pages-repo/$PAGES_PATH/"
+
+      # Le serveur écrit en parallèle dans cdn/en-bref/data/ (API GitHub) : reprise sur rebase.
+      - name: Commit et push
+        working-directory: pages-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A "$PAGES_PATH"
+          if git diff --cached --quiet; then
+            echo "Site inchangé, rien à publier."
+            exit 0
+          fi
+          git commit -m "EnBref : site vitrine @ ${GITHUB_SHA::7}"
+          for attempt in 1 2 3; do
+            if git push; then exit 0; fi
+            echo "Push refusé (tentative $attempt), rebase sur la branche distante…"
+            git pull --rebase
+          done
+          echo "::error::Push impossible après 3 tentatives."
+          exit 1
+
+      - name: Résumé
+        run: echo "Site publié sur $PAGES_URL" >> "$GITHUB_STEP_SUMMARY"

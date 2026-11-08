@@ -332,3 +332,44 @@ pas `design-system/`. Copier les fichiers dans `server/` créerait une seconde s
 - **Coût :** en local, une modification du design system n'apparaît qu'après un rebuild du serveur.
 - **Coût :** le contexte envoyé au démon Docker est plus large ; le `.dockerignore` racine, en
   liste d'autorisation, doit suivre tout nouveau dossier dont l'image aurait besoin.
+
+---
+
+## ADR-010 — Site vitrine publié sur GitHub Pages depuis le monorepo
+
+**Date :** 2026-11-08 · **Statut :** Accepté
+
+### Contexte
+
+Le site vitrine (landing, pages légales, support) vivait dans un dépôt séparé, déployé par FTP sur
+l'espace de 100 Mo fourni avec le domaine OVH `enbref.app`, avec sa propre charte graphique. Le
+monorepo prévoyait de l'accueillir dans `web/` (issue #13), sans trancher l'outillage du dépôt des
+fichiers. Le récap est déjà publié sur `yterraillon/yterraillon.github.io` (ADR-001), et le design
+system vit dans `design-system/`, hors de `web/`.
+
+### Décision
+
+- Le site est servi par GitHub Pages sous **`https://yterraillon.github.io/pages/enbref/`**, dans le
+  dossier `pages/enbref/` du dépôt `yterraillon/yterraillon.github.io`. L'hébergement OVH est
+  abandonné.
+- Le workflow `.github/workflows/web.yml` assemble le site (`web/` + `design-system/tokens.css` et
+  `design-system/components/bundle.css` copiés dans `design-system/`), le valide à chaque PR
+  (html-validate, liens internes, pas de chemin absolu, pas de couleur en dur), puis, au merge sur
+  `main`, remplace `pages/enbref/` par un commit dans le dépôt de pages. Il ne touche à rien d'autre.
+- Le design system n'est **pas** copié dans le dépôt : `web/design-system/` est ignoré par git, la
+  CI le remplit (même principe que la cible `CopyDesignSystem`, ADR-009).
+- Toutes les URL du site sont **relatives**.
+- Le site reste sans build ni dépendance commitée : les outils de lint sont lancés par la CI seule.
+
+### Conséquences
+
+- Un seul dépôt pour le site, l'app et le serveur ; le site suit le design system à chaque déploiement.
+- Plus de secret FTP ni d'espace OVH à maintenir ; le poids des images n'est plus borné à 100 Mo.
+- **Coût :** le site n'a plus d'URL propre (`enbref.app`) ; le domaine et l'adresse
+  `support@enbref.app` restent à trancher séparément.
+- **Coût :** le jeton `ENBREF_GITHUB_TOKEN` sert désormais à deux usages (publication du récap et
+  déploiement du site) : sa révocation coupe les deux.
+- **Coût :** le site dépend d'un dépôt personnel où le serveur publie aussi : deux écrivains
+  concurrents sur la même branche, d'où une reprise par rebase au push.
+- **Coût :** en local, il faut copier le design system dans `web/design-system/` avant d'ouvrir le
+  site, et le recopier après chaque changement.
