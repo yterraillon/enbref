@@ -17,6 +17,7 @@ preview.
 | `build-server.yml` | push sur une branche ≠ `main` (`server/**`, `design-system/**`) | restore + build Release |
 | `pr-server.yml` | PR vers `main` | build, tests unitaires TUnit, puis smoke test Bruno (`tests/endtoend/smoke/`) sur l'image Docker démarrée dans le runner |
 | `release-server.yml` | push sur `main` (merge), ou à la demande | image poussée sur GHCR (`:<CalVer>` et `:latest`), tag et release GitHub |
+| `web.yml` | PR vers `main` et push sur `main` (`web/**`, feuilles du design system), ou à la demande | site vitrine : lint en PR ; au merge, déploiement sur GitHub Pages (voir § Site vitrine) |
 
 Version **CalVer** `YYYY.MM.DD.NN` (ADR-004), calculée sur les tags du jour, passée au build par
 `--build-arg APP_VERSION` : elle devient l'`InformationalVersion` de l'assembly et le label OCI
@@ -82,6 +83,19 @@ Aucun client publié ne le lit : l'application iOS n'est pas encore sortie.
 
 Le test Bruno `tests/endtoend/enbref/` vérifie que l'artefact publié est bien daté du jour. Il n'est
 plus planifié (voir § CI/CD).
+
+## Site vitrine
+
+Le site (`web/`) est servi par GitHub Pages sous <https://yterraillon.github.io/pages/enbref/>,
+dans `pages/enbref/` du dépôt `yterraillon/yterraillon.github.io` (ADR-010).
+
+`web.yml` assemble `_site/` = `web/` + `design-system/tokens.css` et
+`design-system/components/bundle.css` (dans `_site/design-system/`), puis vérifie : HTML valide
+(html-validate, config `web/.htmlvalidate.json`), liens internes (lychee hors ligne), aucun chemin
+absolu, aucune couleur en dur dans `web/styles.css`. Au merge sur `main`, il remplace
+`pages/enbref/` (`rsync --delete`) par un commit dans le dépôt de pages, avec le secret
+`ENBREF_GITHUB_TOKEN`, et ne commite rien si le site n'a pas changé. Le reste du dépôt de pages,
+dont `cdn/en-bref/data/`, n'est jamais touché.
 
 ## Migration depuis myfanwy
 
