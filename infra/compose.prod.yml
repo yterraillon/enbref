@@ -25,7 +25,7 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "8080:8080"   # LAN uniquement
+      - "30045:8080"   # LAN uniquement : http://therook:30045/back-office
     environment:
       # Explicite : une valeur vide ferait tourner la production dans un environnement anonyme.
       - ASPNETCORE_ENVIRONMENT=Production
