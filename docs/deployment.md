@@ -55,7 +55,8 @@ La stack est décrite dans ce dépôt, `infra/compose.prod.yml`, et déployée p
 `therook`. Elle suit les conventions maison — réseau `appNet`, `read_only: true`, `cap_drop: ALL`,
 `no-new-privileges`, logging json-file 10m/3, PUID/PGID du NAS — et pose explicitement
 `ASPNETCORE_ENVIRONMENT=Production` et `TZ=Europe/Paris` (l'heure de génération est lue dans ce
-fuseau).
+fuseau). Le conteneur écoute sur 8080, publié sur le port **30045** du NAS, réseau local
+uniquement : back-office sur <http://therook:30045/back-office>, sonde sur `/health`.
 
 Variables définies dans Komodo, toutes obligatoires sauf `Ntfy__Token` (le déploiement échoue si
 l'une manque) :
