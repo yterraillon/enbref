@@ -8,7 +8,7 @@ Tests end-to-end [Bruno](https://www.usebruno.com/). Les tests unitaires du serv
 | Collection | Cible | Vérifie |
 |---|---|---|
 | `endtoend/enbref/` | CDN de production | `LatestRecapShouldBePublishedToday` : le récap du jour publié est du JSON valide, daté du jour |
-| `endtoend/dev/` | serveur local | le déclencheur de génération répond 200 |
+| `endtoend/dev/` | serveur local ou de prod | le déclencheur de génération répond 200 |
 | `endtoend/smoke/` | serveur + CDN | `/health` répond avec la version, puis génère et publie un **récap de test** et vérifie que `test.json` a été republié, dans la forme d'ADR-008 |
 
 `enbref/` ne nécessite ni serveur ni secret.
@@ -20,11 +20,16 @@ GitHub Pages.
 
 ⚠️ `dev/GenerateRecapDaily` appelle l'API Claude : chaque lancement consomme des crédits.
 
+L'environnement `prod` (`dev/` et `smoke/`) vise le serveur du NAS, `http://192.168.1.100:30045`,
+joignable depuis le réseau local uniquement. `smoke/` y republie `test.json` : c'est la vérification
+de bout en bout d'un déploiement.
+
 ## Lancer
 
 ```bash
 cd tests/endtoend/dev   && npx @usebruno/cli run --env local
 cd tests/endtoend/smoke && npx @usebruno/cli run --env local
+cd tests/endtoend/smoke && npx @usebruno/cli run --env prod    # après un déploiement
 cd tests/endtoend/enbref && npx @usebruno/cli run
 ```
 
