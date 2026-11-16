@@ -429,3 +429,55 @@ L'état de la génération quotidienne (démarrée ou arrêtée) vivait en mémo
   bandeau du back-office le rappelle.
 - **Coût :** une stack de production de plus dans ce dépôt, hors des conventions centralisées de
   `checquy` : elles sont recopiées dans le compose, et à resynchroniser à la main.
+
+---
+
+## ADR-012 — Flux RSS du récap du jour publié sur GitHub Pages
+
+**Date :** 2026-11-16 · **Statut :** Accepté
+
+### Contexte
+
+Le récap du jour n'atteint ses lecteurs que par l'application iOS, qui n'est pas encore publiée. Un
+flux RSS le rendrait lisible dans n'importe quel lecteur RSS, sans compte ni application. Un flux
+RSS est un fichier XML statique que les lecteurs relisent à intervalle régulier : GitHub Pages peut
+le servir comme il sert `latest.json` (ADR-001), sans exposer le serveur. Le serveur n'a pas
+d'historique des récaps (LiteDB n'est pas encore en place) ; or un flux porte plusieurs items, faute
+de quoi un lecteur qui ne relit pas le flux chaque jour manque des récaps.
+
+### Décision
+
+- Le serveur publie le **flux du récap**, RSS 2.0, sur l'artefact `feed.xml`, à côté de
+  `latest.json` : `https://yterraillon.github.io/cdn/en-bref/data/feed.xml`.
+- Un item par récap du jour : titre « Récap du 16 novembre 2026 », `guid` stable `enbref-<date>`
+  (un récap régénéré le même jour remplace l'item), et le récap complet en HTML dans `description`,
+  catégories dans l'ordre du glossaire avec leurs libellés FR.
+- **Le flux sert lui-même d'historique** : à chaque publication, le serveur relit `feed.xml` à la
+  source, ajoute l'item du jour en tête et garde les **30** plus récents. Rendu et relecture par
+  `System.Xml.Linq`, sans paquet ajouté.
+- Le flux est publié par une slice `PublishRecapFeed`, appelée par `GenerateRecap` **après** une
+  publication réussie de `latest.json`, pour le **récap du jour seulement** : le type de récap en
+  décide dans le code, comme pour l'artefact (ADR-007).
+- **Un échec du flux ne fait pas échouer la génération** : il lève une alerte ntfy (ADR-011). Une
+  relecture en échec (hors absence) n'est suivie d'aucune publication, pour ne pas effacer
+  l'historique sur une erreur réseau ; un flux illisible repart du seul item du jour.
+- La vérification de publication contrôle aussi, derrière un récap du jour publié, que le premier
+  item du flux porte la date attendue.
+
+### Conséquences
+
+- Le récap du jour devient lisible hors de l'application, sur tous les lecteurs RSS, au coût du CDN
+  de GitHub Pages. Il pourra aussi alimenter un envoi par mail via un service RSS → mail, sans liste
+  d'adresses côté serveur.
+- La génération quotidienne ne retente pas pour le flux : une panne du flux ne coûte aucune
+  génération LLM.
+- **Coût :** deux artefacts publiés en deux commits : la publication n'est pas transactionnelle.
+  Un `latest.json` à jour peut côtoyer un flux en retard ; seule l'alerte le signale, et le flux ne
+  se rattrape qu'à la publication suivante.
+- **Coût :** un second contrat public. L'URL du flux ne peut plus changer une fois diffusée (GitHub
+  Pages ne fait pas de redirection), alors que le domaine `enbref.app` reste ouvert (ADR-010) ; un
+  `guid` changé fait réapparaître tous les items chez les lecteurs.
+- **Coût :** l'historique du flux vit dans le flux. Un `feed.xml` supprimé ou corrompu perd ses
+  items passés ; il faudra le reconstruire depuis l'historique quand celui-ci existera.
+- **Coût :** le libellé du site et l'adresse du flux sont en dur dans `RecapFeed`, indépendants de
+  `GithubOptions` : un déplacement du dossier de publication les oublierait.

@@ -14,12 +14,16 @@ et ADR-007 ([`architecture-decision-record.md`](architecture-decision-record.md)
 | **LLM** | API Claude | API Claude | Aucun |
 | **Crédits** | Oui | Oui | Non |
 | **Artefact** | `latest.json` | `demo.json` | `test.json` |
-| **Lu par** | L'application iOS | La revue App Store, les tests de chargement | Les vérifications de bout en bout |
+| **Lu par** | L'application iOS, les lecteurs RSS (flux du récap, `feed.xml`) | La revue App Store, les tests de chargement | Les vérifications de bout en bout |
 
 ## Récap du jour : la production
 
 Le seul récap que lisent les clients en usage normal. Le job quotidien collecte les titres des flux
 RSS réels, les confie à l'API Claude, puis publie le résultat sur `latest.json`. Un récap par jour.
+
+Il alimente aussi le **flux du récap** (`feed.xml`, RSS) : après `latest.json`, le récap y est
+ajouté en tête, parmi les trente derniers. Un échec du flux lève une alerte sans faire échouer la
+génération (ADR-012).
 
 ## Récap de démo : une boucle complète, à la demande
 

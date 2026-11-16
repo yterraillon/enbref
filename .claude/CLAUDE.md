@@ -86,7 +86,7 @@ Trois notions distinctes — ne pas les confondre, le glossaire les sépare expl
 
 Le rôle de chacun est détaillé dans `docs/recaps.md`. Les trois sont publiés par
 `POST /api/recaps/generations` (`publish: true`) ; le récap du jour l'est aussi par le job quotidien (ADR-011). Forme JSON :
-ADR-008.
+ADR-008. Le récap du jour alimente en plus le **flux du récap** (`feed.xml`, RSS, ADR-012).
 
 ## Stack Docker locale
 

@@ -92,7 +92,7 @@ appelé et l'artefact de publication ; un type `Test` n'appelle jamais le LLM et
 Le fichier publié sur le dépôt de publication pour un type de récap : `latest.json` (récap du
 jour), `demo.json` (récap de démo) ou `test.json` (récap de test). L'artefact découle du type, dans
 le code, jamais d'un paramètre d'appel ni de la configuration (ADR-007). Sa forme JSON est fixée par
-ADR-008.
+ADR-008. Le flux du récap (§ 5) est publié sur un artefact à part, `feed.xml` (ADR-012).
 
 **À ne pas dire** : fichier, export, snapshot, dump.
 
@@ -251,16 +251,17 @@ défaut, réglable depuis les Réglages du back-office ; un changement prend eff
 « Vérification de publication »
 
 Le contrôle, une heure après l'heure de génération, que le récap du jour publié porte bien la date
-de la génération quotidienne. Il ne tourne que si la génération quotidienne est démarrée ; un récap
-absent, illisible ou d'une autre date lève une alerte.
+de la génération quotidienne, puis que le flux du récap en contient l'item. Il ne tourne que si la
+génération quotidienne est démarrée ; un récap ou un flux du récap absent, illisible ou d'une autre
+date lève une alerte.
 
 **À ne pas dire** : monitoring, watchdog, healthcheck, sonde.
 
 ### Alerte
 **Code** : `Alert` (`IAlertSender`, `NtfyAlertSender`) · **UI** : « Alerte »
 
-Le message envoyé sur ntfy quand la génération quotidienne échoue après ses trois tentatives, ou
-quand la vérification de publication échoue. Une alerte de test s'envoie depuis les Réglages.
+Le message envoyé sur ntfy quand la génération quotidienne échoue après ses trois tentatives, quand
+le flux du récap n'a pas pu être publié, ou quand la vérification de publication échoue. Une alerte de test s'envoie depuis les Réglages.
 
 « Topic ntfy » (le canal ntfy où partent les alertes) est un terme technique admis : il ne désigne
 pas une Catégorie, pour laquelle « topic » reste proscrit.
@@ -285,6 +286,22 @@ Ce que constate la publication d'un récap : le commit qui porte l'artefact publ
 l'échec. Une publication en échec fait échouer la génération qui l'a demandée.
 
 **À ne pas dire** : résultat de push, résultat d'upload, rapport de publication.
+
+### Flux du récap
+**Code** : `RecapFeed` (slice `PublishRecapFeed`) · **UI** : « Flux du récap » · **Artefact** :
+`feed.xml`
+
+Le flux RSS publié par EnBref, qui reprend les trente derniers récaps du jour, un item par date,
+pour les lecteurs RSS. Il est mis à jour à chaque publication du récap du jour, jamais par le récap
+de démo ni le récap de test. Son échec lève une alerte mais ne fait pas échouer la génération
+(ADR-012).
+
+Ne pas le confondre avec un **flux** (§ 4), que publie une source et que la collecte interroge.
+
+« Item » (l'élément `<item>` du RSS, qui porte un récap du jour entier) est un terme technique
+admis dans ce seul contexte : il ne désigne jamais une brève, pour laquelle il reste proscrit.
+
+**À ne pas dire** : flux (employé seul), feed, rss.xml, newsletter, abonnement.
 
 ### Historique
 **Code** : `History` · **UI** : « Historique »
@@ -369,6 +386,7 @@ demandée au LLM reste 200 et que ses dépassements observés restent proches (�
 | heure du cron, horaire, créneau | Heure de génération |
 | monitoring, watchdog, healthcheck (du récap publié) | Vérification de publication |
 | notification, push, ping (côté serveur) | Alerte |
+| feed, rss.xml, flux (seul, pour celui d'EnBref) | Flux du récap |
 | fichier, export, snapshot (d'un récap publié) | Artefact |
 | publieur, publisher (pour le dépôt de publication) | Dépôt de publication (`IPublicationRepository`) |
 | admin, console, dashboard | Back-office |

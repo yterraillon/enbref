@@ -1,6 +1,8 @@
 using EnBref.Api.Features.GenerateRecap;
 using EnBref.Api.Shared;
 using EnBref.Api.Tests.Features.CollectHeadlines;
+using EnBref.Api.Tests.Features.PublishRecapFeed;
+using TUnit.Assertions.Enums;
 using EnBref.Infrastructure.Collection;
 using EnBref.Infrastructure.Llm;
 using EnBref.Infrastructure.Publication;
@@ -12,15 +14,20 @@ public class GenerateRecapHandlerTests
 {
     private static readonly Feed Feed = new("Source", new Uri("https://source.test/rss"));
 
-    internal static GenerateRecapHandler Handler(IFeedReader rss, IFeedReader fake, StubLlmClient? llm = null, IPublicationRepository? publicationRepository = null) =>
-        new(CollectHeadlinesHandlerTests.Handler(Feed),
+    internal static GenerateRecapHandler Handler(IFeedReader rss, IFeedReader fake, StubLlmClient? llm = null,
+        IPublicationRepository? publicationRepository = null, StubAlertSender? alerts = null)
+    {
+        var repository = publicationRepository ?? StubPublicationRepository.Succeeding();
+        return new(CollectHeadlinesHandlerTests.Handler(Feed),
             rss,
             fake,
             new GenerationAgent(llm ?? StubLlmClient.Completed(GenerationAgentTests.Output()), NullLogger<GenerationAgent>.Instance),
             new TestRecapWriter(),
-            publicationRepository ?? StubPublicationRepository.Succeeding(),
+            repository,
+            PublishRecapFeedHandlerTests.Handler(repository, alerts ?? new StubAlertSender()),
             TimeProvider.System,
             NullLogger<GenerateRecapHandler>.Instance);
+    }
 
     [Test]
     [Arguments(RecapType.Daily, "réel")]
@@ -99,10 +106,10 @@ public class GenerateRecapHandlerTests
     }
 
     [Test]
-    [Arguments(RecapType.Daily, "latest.json")]
+    [Arguments(RecapType.Daily, "latest.json,feed.xml")]
     [Arguments(RecapType.Demo, "demo.json")]
     [Arguments(RecapType.Test, "test.json")]
-    public async Task Each_recap_type_is_published_on_its_own_artifact_only(RecapType type, string expectedArtifact)
+    public async Task Each_recap_type_is_published_on_its_own_artifacts_only(RecapType type, string expectedArtifacts)
     {
         var publicationRepository = StubPublicationRepository.Succeeding();
         var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"), publicationRepository: publicationRepository);
@@ -110,7 +117,38 @@ public class GenerateRecapHandlerTests
         var result = await handler.HandleAsync(new GenerateRecapCommand(type, Publish: true), CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsTrue();
-        await Assert.That(publicationRepository.Publications.Select(publication => publication.Artifact)).IsEquivalentTo([expectedArtifact]);
+        // Ordre compris : le flux du récap ne part qu'après latest.json.
+        await Assert.That(publicationRepository.Publications.Select(publication => publication.Artifact))
+            .IsEquivalentTo(expectedArtifacts.Split(','), CollectionOrdering.Matching);
+    }
+
+    [Test]
+    public async Task Failed_feed_publication_keeps_the_generation_successful_and_raises_an_alert()
+    {
+        var publicationRepository = StubPublicationRepository.Succeeding();
+        publicationRepository.Results["feed.xml"] = new PublicationResult(CommitUrl: null, "GitHub 409");
+        var alerts = new StubAlertSender();
+        var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"), publicationRepository: publicationRepository, alerts: alerts);
+
+        var result = await handler.HandleAsync(new GenerateRecapCommand(RecapType.Daily, Publish: true), CancellationToken.None);
+
+        await Assert.That(result.IsSuccessful).IsTrue();
+        await Assert.That(result.FeedPublication!.Error).Contains("GitHub 409");
+        await Assert.That(alerts.Alerts.Single().Title).IsEqualTo("Flux du récap non publié");
+    }
+
+    [Test]
+    public async Task Failed_recap_publication_does_not_publish_the_feed()
+    {
+        var publicationRepository = StubPublicationRepository.Succeeding();
+        publicationRepository.Results["latest.json"] = new PublicationResult(CommitUrl: null, "GitHub 422");
+        var handler = Handler(StubFeedReader.Available("réel"), StubFeedReader.Available("faux"), publicationRepository: publicationRepository);
+
+        var result = await handler.HandleAsync(new GenerateRecapCommand(RecapType.Daily, Publish: true), CancellationToken.None);
+
+        await Assert.That(result.IsSuccessful).IsFalse();
+        await Assert.That(result.FeedPublication).IsNull();
+        await Assert.That(publicationRepository.Publications.Select(publication => publication.Artifact)).IsEquivalentTo(["latest.json"]);
     }
 
     [Test]

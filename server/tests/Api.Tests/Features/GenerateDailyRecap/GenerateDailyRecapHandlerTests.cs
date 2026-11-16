@@ -1,4 +1,5 @@
 using EnBref.Api.Features.GenerateDailyRecap;
+using EnBref.Api.Features.PublishRecapFeed;
 using EnBref.Api.Shared;
 using EnBref.Api.Tests.Features.GenerateRecap;
 using EnBref.Infrastructure.Publication;
@@ -43,14 +44,14 @@ public class GenerateDailyRecapHandlerTests
     }
 
     [Test]
-    public async Task Daily_recap_is_published_on_latest()
+    public async Task Daily_recap_is_published_on_latest_then_in_the_feed()
     {
         var repository = new SequencedPublicationRepository(Published);
 
         var result = await Handler(repository).HandleAsync(GenerationDate, CancellationToken.None);
 
         await Assert.That(result.IsSuccessful).IsTrue();
-        await Assert.That(repository.Publications).IsEquivalentTo(["latest.json"]);
+        await Assert.That(repository.Publications).IsEquivalentTo(["latest.json", "feed.xml"]);
     }
 
     [Test]
@@ -132,9 +133,14 @@ public class GenerateDailyRecapHandlerTests
         await Assert.That(alerts.Alerts).IsEmpty();
     }
 
-    /// <summary>Dépôt de publication qui renvoie les résultats choisis, dans l'ordre ; null lève une exception.</summary>
+    /// <summary>
+    /// Dépôt de publication qui renvoie les résultats choisis, dans l'ordre, aux publications du récap ;
+    /// null lève une exception. Le flux du récap, absent du dépôt, se publie toujours.
+    /// </summary>
     internal sealed class SequencedPublicationRepository(params PublicationResult?[] results) : IPublicationRepository
     {
+        private int recapPublications;
+
         public List<string> Publications { get; } = [];
 
         public List<string> Messages { get; } = [];
@@ -145,13 +151,18 @@ public class GenerateDailyRecapHandlerTests
         {
             Publications.Add(artifact);
             Messages.Add(message);
+            if (artifact == RecapFeed.Artifact)
+            {
+                return Task.FromResult(Published);
+            }
+
             OnPublish?.Invoke();
-            return results[Publications.Count - 1] is { } result
+            return results[recapPublications++] is { } result
                 ? Task.FromResult(result)
                 : throw new InvalidOperationException("Panne simulée.");
         }
 
         public Task<ArtifactReadResult> ReadAsync(string artifact, CancellationToken cancellationToken) =>
-            throw new NotSupportedException();
+            Task.FromResult(new ArtifactReadResult(Content: null, $"Artefact absent : {artifact}.", IsMissing: true));
     }
 }

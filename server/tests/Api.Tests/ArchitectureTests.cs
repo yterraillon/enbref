@@ -23,6 +23,10 @@ public class ArchitectureTests
         ("GenerateDailyRecap", "GenerateRecap"),
         // La vérification de publication relit le récap publié.
         ("CheckPublication", "ReadPublishedRecap"),
+        // Le récap du jour publié alimente le flux du récap (ADR-012).
+        ("GenerateRecap", "PublishRecapFeed"),
+        // La vérification de publication relit aussi le flux du récap.
+        ("CheckPublication", "PublishRecapFeed"),
     ];
 
     [Test]

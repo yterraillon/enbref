@@ -12,9 +12,14 @@ public static class Generations
     /// </summary>
     public static bool RequiresConfirmation(RecapType type) => type != RecapType.Test;
 
-    /// <summary>« Récap de démo généré et publié. » ou « Erreur lors de la collecte : … ».</summary>
-    public static string Feedback(RecapType type, GenerateRecapResult result) =>
-        result.Failure is { } failure
-            ? $"Erreur lors de la {failure.Step.Label()} : {failure.Message}"
-            : $"{type.Label()} généré et publié.";
+    /// <summary>
+    /// « Récap de démo généré et publié. », « Erreur lors de la collecte : … », ou, flux du récap en
+    /// échec, « Récap du jour généré et publié. Flux du récap non publié : … ».
+    /// </summary>
+    public static string Feedback(RecapType type, GenerateRecapResult result) => result switch
+    {
+        { Failure: { } failure } => $"Erreur lors de la {failure.Step.Label()} : {failure.Message}",
+        { FeedPublication.Error: { } feedError } => $"{type.Label()} généré et publié. Flux du récap non publié : {feedError}",
+        _ => $"{type.Label()} généré et publié.",
+    };
 }

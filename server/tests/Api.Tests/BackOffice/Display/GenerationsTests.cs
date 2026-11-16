@@ -2,6 +2,7 @@ using EnBref.Api.BackOffice.Display;
 using EnBref.Api.Features.CollectHeadlines;
 using EnBref.Api.Features.GenerateRecap;
 using EnBref.Api.Shared;
+using EnBref.Infrastructure.Publication;
 
 namespace EnBref.Api.Tests.BackOffice.Display;
 
@@ -24,6 +25,15 @@ public class GenerationsTests
         var feedback = Generations.Feedback(RecapType.Demo, new GenerateRecapResult(Collection));
 
         await Assert.That(feedback).IsEqualTo("Récap de démo généré et publié.");
+    }
+
+    [Test]
+    public async Task Failed_feed_publication_is_mentioned_after_the_success()
+    {
+        var result = new GenerateRecapResult(Collection, FeedPublication: new PublicationResult(CommitUrl: null, "GitHub 409"));
+
+        await Assert.That(Generations.Feedback(RecapType.Daily, result))
+            .IsEqualTo("Récap du jour généré et publié. Flux du récap non publié : GitHub 409");
     }
 
     [Test]

@@ -1,5 +1,6 @@
 @page "/back-office/recaps"
 @using EnBref.Api.Features.GenerateRecap
+@using EnBref.Api.Features.PublishRecapFeed
 @using EnBref.Api.Features.ReadPublishedRecap
 @inject ReadPublishedRecapHandler ReadPublishedRecap
 @inject GenerateRecapHandler GenerateRecap
@@ -40,6 +41,11 @@
                         }
                     </div>
                     <div class="subhead eb-num eb-muted">@(Read(type) is { } meta ? RecapTexts.Meta(meta) : "Lecture…")</div>
+                    @if (type == RecapType.Daily)
+                    {
+                        @* Le flux du récap suit le récap du jour (ADR-012). *@
+                        <a href="@RecapFeed.Url" target="_blank" rel="noopener" class="footnote bo-link">Flux du récap · @RecapFeed.Artifact</a>
+                    }
                 </div>
                 <div class="bo-actions">
                     @* La génération ne part que sur ce clic, confirmé pour le récap du jour et le récap de démo. *@
