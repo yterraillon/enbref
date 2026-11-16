@@ -1,4 +1,5 @@
 using EnBref.Api.Features.CollectHeadlines;
+using EnBref.Api.Features.PublishRecapFeed;
 using EnBref.Api.Shared;
 using EnBref.Infrastructure.Collection;
 using EnBref.Infrastructure.Publication;
@@ -15,12 +16,15 @@ public sealed record GenerateRecapCommand(RecapType Type, bool Publish, DateOnly
 /// <param name="Artifact">Artefact visé ; null tant que la publication n'est pas tentée.</param>
 /// <param name="Publication">Null si la publication n'est pas demandée ou pas atteinte.</param>
 /// <param name="Failure">Null si la génération a réussi.</param>
+/// <param name="FeedPublication">Publication du flux du récap ; null hors récap du jour publié. Son échec ne fait
+/// pas échouer la génération (ADR-012).</param>
 public sealed record GenerateRecapResult(
     CollectionResult Collection,
     Recap? Recap = null,
     string? Artifact = null,
     PublicationResult? Publication = null,
-    GenerateRecapFailure? Failure = null)
+    GenerateRecapFailure? Failure = null,
+    PublicationResult? FeedPublication = null)
 {
     public bool IsSuccessful => Failure is null;
 }
@@ -56,6 +60,7 @@ public sealed class GenerateRecapHandler(
     GenerationAgent generationAgent,
     TestRecapWriter testRecapWriter,
     IPublicationRepository publicationRepository,
+    PublishRecapFeedHandler publishRecapFeed,
     TimeProvider timeProvider,
     ILogger<GenerateRecapHandler> logger)
 {
@@ -89,11 +94,12 @@ public sealed class GenerateRecapHandler(
 
     // Seul endroit où le type de récap choisit la source et le rédacteur. Le récap de test lit la fausse
     // source, n'appelle pas le LLM et n'atteint que test.json (ADR-007) : l'artefact découle du type.
+    // Seul le récap du jour alimente le flux du récap (ADR-012).
     private RecapPipeline PipelineFor(RecapType type) => type switch
     {
-        RecapType.Daily => new(rssFeedReader, generationAgent, type.Artifact(), "du jour"),
-        RecapType.Demo => new(rssFeedReader, generationAgent, type.Artifact(), "de démo"),
-        RecapType.Test => new(fakeFeedReader, testRecapWriter, type.Artifact(), "de test"),
+        RecapType.Daily => new(rssFeedReader, generationAgent, type.Artifact(), "du jour", PublishesFeed: true),
+        RecapType.Demo => new(rssFeedReader, generationAgent, type.Artifact(), "de démo", PublishesFeed: false),
+        RecapType.Test => new(fakeFeedReader, testRecapWriter, type.Artifact(), "de test", PublishesFeed: false),
         _ => throw new ArgumentOutOfRangeException(nameof(type), type, "Type de récap sans pipeline."),
     };
 
@@ -103,9 +109,14 @@ public sealed class GenerateRecapHandler(
             $"Publication du récap {pipeline.Label} du {recap.Date:yyyy-MM-dd}", cancellationToken);
         var published = generated with { Artifact = pipeline.Artifact, Publication = publication };
 
-        return publication.IsSuccessful
-            ? published
-            : Fail(type, published, GenerationStep.Publication, $"Publication sur {pipeline.Artifact} impossible : {publication.Error}");
+        if (!publication.IsSuccessful)
+        {
+            return Fail(type, published, GenerationStep.Publication, $"Publication sur {pipeline.Artifact} impossible : {publication.Error}");
+        }
+
+        return pipeline.PublishesFeed
+            ? published with { FeedPublication = await publishRecapFeed.HandleAsync(recap, cancellationToken) }
+            : published;
     }
 
     private GenerateRecapResult Fail(RecapType type, GenerateRecapResult result, GenerationStep step, string message)
@@ -115,5 +126,5 @@ public sealed class GenerateRecapHandler(
         return result with { Failure = new GenerateRecapFailure(step, message) };
     }
 
-    private sealed record RecapPipeline(IFeedReader FeedReader, IRecapWriter Writer, string Artifact, string Label);
+    private sealed record RecapPipeline(IFeedReader FeedReader, IRecapWriter Writer, string Artifact, string Label, bool PublishesFeed);
 }

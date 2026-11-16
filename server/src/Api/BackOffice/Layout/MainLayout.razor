@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @inject IHostEnvironment Environment
+@using EnBref.Api.Features.PublishRecapFeed
 @inject DailyGenerationSettingsStore DailyGeneration
 
 <div class="bo-shell">
@@ -18,7 +19,10 @@
             <NavLink href="back-office/feeds" ActiveClass="active headline" class="bo-nav-link body">Flux RSS</NavLink>
             <NavLink href="back-office/settings" ActiveClass="active headline" class="bo-nav-link body">Réglages</NavLink>
         </div>
-        <div class="bo-nav-foot footnote eb-num eb-muted">Version @ServerVersion.Current · @Environment.EnvironmentName</div>
+        <div class="bo-nav-foot footnote eb-num eb-muted">
+            <a href="@RecapFeed.SiteUrl" target="_blank" rel="noopener" class="bo-link">Site vitrine</a>
+            <div>Version @ServerVersion.Current · @Environment.EnvironmentName</div>
+        </div>
     </nav>
 
     <main class="bo-main">

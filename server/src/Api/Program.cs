@@ -5,6 +5,7 @@ using EnBref.Api.Features.CheckPublication;
 using EnBref.Api.Features.CollectHeadlines;
 using EnBref.Api.Features.GenerateDailyRecap;
 using EnBref.Api.Features.GenerateRecap;
+using EnBref.Api.Features.PublishRecapFeed;
 using EnBref.Api.Features.ReadPublishedRecap;
 using EnBref.Api.Shared;
 using EnBref.Infrastructure;
@@ -20,6 +21,7 @@ builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddCollectHeadlines();
+builder.Services.AddPublishRecapFeed();
 builder.Services.AddGenerateRecap();
 builder.Services.AddReadPublishedRecap();
 builder.Services.AddDailyGenerationSettings(builder.Configuration);

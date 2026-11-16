@@ -1,6 +1,9 @@
+using System.Xml;
+using EnBref.Api.Features.PublishRecapFeed;
 using EnBref.Api.Features.ReadPublishedRecap;
 using EnBref.Api.Shared;
 using EnBref.Infrastructure.Alerting;
+using EnBref.Infrastructure.Publication;
 
 namespace EnBref.Api.Features.CheckPublication;
 
@@ -12,17 +15,20 @@ public sealed record CheckPublicationResult(bool IsSkipped, string? Problem)
 }
 
 /// <summary>
-/// Vérification de publication : le récap du jour publié doit porter la date de la génération
-/// quotidienne. Sinon, alerte. Rien n'est vérifié quand la génération quotidienne est arrêtée.
+/// Vérification de publication : le récap du jour publié, puis le premier item du flux du récap,
+/// doivent porter la date de la génération quotidienne. Sinon, alerte. Rien n'est vérifié quand la génération quotidienne est arrêtée.
 /// </summary>
 public sealed class CheckPublicationHandler(
     ReadPublishedRecapHandler readPublishedRecap,
+    IPublicationRepository publicationRepository,
     DailyGenerationSettingsStore settings,
     IAlertSender alertSender,
     ILogger<CheckPublicationHandler> logger)
 {
     private const string Missing = "Récap du jour absent";
     private const string Unchecked = "Récap du jour non vérifié";
+    private const string FeedMissing = "Flux du récap absent";
+    private const string FeedUnchecked = "Flux du récap non vérifié";
 
     public async Task<CheckPublicationResult> HandleAsync(DateOnly expectedDate, CancellationToken cancellationToken)
     {
@@ -43,14 +49,48 @@ public sealed class CheckPublicationHandler(
             _ => (Missing, null),
         };
 
+        // Le flux ne se vérifie que derrière un récap du jour publié : sinon, une seule alerte suffit.
         if (problem is null)
         {
-            logger.LogInformation("Vérification de publication : récap du {Date:yyyy-MM-dd} publié.", expectedDate);
+            (title, problem) = await CheckFeedAsync(expectedDate, cancellationToken);
+        }
+
+        if (problem is null)
+        {
+            logger.LogInformation("Vérification de publication : récap du {Date:yyyy-MM-dd} et flux du récap publiés.", expectedDate);
             return new CheckPublicationResult(IsSkipped: false, Problem: null);
         }
 
         logger.LogError("Vérification de publication en échec : {Problem}", problem);
         await alertSender.SendAsync(new Alert(title, problem), cancellationToken);
         return new CheckPublicationResult(IsSkipped: false, problem);
+    }
+
+    private async Task<(string Title, string? Problem)> CheckFeedAsync(DateOnly expectedDate, CancellationToken cancellationToken)
+    {
+        var read = await publicationRepository.ReadAsync(RecapFeed.Artifact, cancellationToken);
+        if (read.IsMissing)
+        {
+            return (FeedMissing, $"{RecapFeed.Artifact} est absent du dépôt de publication.");
+        }
+
+        if (read.Content is not { } content)
+        {
+            return (FeedUnchecked, $"{RecapFeed.Artifact} est illisible : {read.Error}");
+        }
+
+        DateOnly? date;
+        try
+        {
+            date = RecapFeed.LatestDate(RecapFeed.Parse(content));
+        }
+        catch (XmlException exception)
+        {
+            return (FeedUnchecked, $"{RecapFeed.Artifact} est illisible : {exception.Message}");
+        }
+
+        return date == expectedDate
+            ? (FeedMissing, null)
+            : (FeedMissing, $"Le dernier item de {RecapFeed.Artifact} est {(date is { } latest ? $"daté du {latest:dd/MM/yyyy}" : "absent")}, le récap du {expectedDate:dd/MM/yyyy} n'y est pas.");
     }
 }

@@ -18,7 +18,8 @@ src/
 │   │   │                    IRecapWriter (GenerationAgent : prompt + validation, TestRecapWriter)
 │   │   ├── ReadPublishedRecap/ lecture du récap publié à la source, appelée en mémoire (back-office)
 │   │   ├── GenerateDailyRecap/ job quotidien (DailyRecapJob) + handler : 3 tentatives, puis alerte (ADR-011)
-│   │   └── CheckPublication/ vérification de publication, heure de génération + 1 h, alerte si le récap manque
+│   │   ├── PublishRecapFeed/ flux du récap (feed.xml, RSS) après latest.json ; échec → alerte, jamais d'échec de génération (ADR-012)
+│   │   └── CheckPublication/ vérification de publication, heure de génération + 1 h, alerte si le récap ou le flux du récap manque
 │   ├── Shared/              types servant à plusieurs slices : Recap (modèle, RecapType → libellé et artefact),
 │   │                        RecapContract (JSON publié, ADR-008 : sérialisation et relecture),
 │   │                        DailySchedule (échéances) et DailyJob (boucle des deux jobs),
