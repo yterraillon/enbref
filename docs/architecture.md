@@ -69,12 +69,12 @@ bout sans naviguer entre quatre projets.
 ### Ce qui reste partagé
 
 Tout ce qui sert plusieurs slices, et rien d'autre : lecture des flux RSS, client LLM, publication
-sur le CDN, accès LiteDB, notification ntfy, sérialisation JSON. Une abstraction ne devient
+sur le CDN, accès LiteDB, alerte (ntfy), sérialisation JSON. Une abstraction ne devient
 partagée que lorsqu'un **deuxième** appelant la réclame.
 
 ### Ce qui traverse les frontières
 
-Le serveur a trois dépendances sortantes, et chacune doit rester derrière une abstraction, pour une
+Le serveur a quatre dépendances sortantes, et chacune doit rester derrière une abstraction, pour une
 raison précise :
 
 | Dépendance | Abstraction | Pourquoi |
@@ -82,6 +82,7 @@ raison précise :
 | Flux RSS | lecteur de flux | Les sources changent ; le format aussi (RSS, Atom). |
 | LLM | client LLM (`ILlmClient`) | Claude est le seul fournisseur (ADR-007) ; le contrat permet les stubs de test et la future couche d'inférence. Il traduit les erreurs du fournisseur en statuts neutres. L'**agent de génération**, qui porte le prompt et la validation du récap, vit dans le slice de génération : ce sont des règles métier. Le récap de test ne l'appelle pas. |
 | Dépôt de publication | dépôt de publication (`IPublicationRepository`) | La destination peut changer ; surtout, le récap de test ne doit atteindre que `test.json`. |
+| Alertes (ntfy) | envoi d'alertes (`IAlertSender`) | Stubs de test ; un échec d'envoi est rendu, jamais levé ; sans topic, rien ne part (ADR-011). |
 
 LiteDB n'est pas dans cette liste : l'historique est un détail interne, et une abstraction de
 persistance posée « au cas où » coûte plus qu'elle ne rapporte.
@@ -127,10 +128,12 @@ nom de domaine. Il ne consomme pas le récap.
 ## 6. État réel du serveur
 
 Le code importé de `myfanwy` a été supprimé (`387318c`) ; le serveur est **reconstruit de zéro**
-selon les règles ci-dessus (ADR-005). Le seul point d'entrée existant est
-`POST /api/recaps/generations` (`Features/GenerateRecap`). Son handler enchaîne collecte,
-génération et publication sur l'artefact du type de récap ; la clé d'ADR-006 n'est pas encore
-implémentée.
+selon les règles ci-dessus (ADR-005). Deux points d'entrée déclenchent une génération :
+`POST /api/recaps/generations` (`Features/GenerateRecap`), dont le handler enchaîne collecte,
+génération et publication sur l'artefact du type de récap — la clé d'ADR-006 n'est pas encore
+implémentée — et le **job quotidien** (`Features/GenerateDailyRecap`, ADR-011), qui publie le récap
+du jour à l'heure de génération. La **vérification de publication** (`Features/CheckPublication`)
+relit le récap du jour une heure plus tard et lève une alerte ntfy s'il manque.
 
 ## 7. Ce qui reste à décider
 

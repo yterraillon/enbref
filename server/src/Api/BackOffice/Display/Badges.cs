@@ -1,6 +1,7 @@
 using EnBref.Api.Features.CollectHeadlines;
 using EnBref.Api.Features.ReadPublishedRecap;
 using EnBref.Api.Shared;
+using EnBref.Infrastructure.Alerting;
 using EnBref.Infrastructure.Collection;
 using EnBref.Infrastructure.Llm;
 
@@ -45,4 +46,8 @@ public static class Badges
         LlmStatus.Rejected => new Badge("Rejeté", BadgeTone.Danger),
         _ => throw new ArgumentOutOfRangeException(nameof(status), status, "Statut LLM sans badge."),
     };
+
+    public static Badge ForAlert(AlertResult result) => result.IsSent
+        ? new Badge("Envoyée", BadgeTone.Success)
+        : new Badge("Non envoyée", BadgeTone.Danger);
 }

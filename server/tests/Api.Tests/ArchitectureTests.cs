@@ -19,6 +19,10 @@ public class ArchitectureTests
     private static readonly HashSet<(string From, string To)> AllowedSliceDependencies =
     [
         ("GenerateRecap", "CollectHeadlines"),
+        // Le job quotidien enchaîne la génération existante.
+        ("GenerateDailyRecap", "GenerateRecap"),
+        // La vérification de publication relit le récap publié.
+        ("CheckPublication", "ReadPublishedRecap"),
     ];
 
     [Test]

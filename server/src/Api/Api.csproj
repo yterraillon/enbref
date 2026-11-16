@@ -2,6 +2,10 @@
   <PropertyGroup>
     <RootNamespace>EnBref.Api</RootNamespace>
     <UserSecretsId>enbref-server</UserSecretsId>
+    <!-- blazor.web.js vient d'un paquet que le SDK n'ajoute que s'il voit des .razor au restore.
+         Le Dockerfile restaure avec les seuls .csproj : sans cette ligne, l'image n'a pas de
+         _framework/blazor.web.js et le back-office n'est jamais interactif. -->
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />

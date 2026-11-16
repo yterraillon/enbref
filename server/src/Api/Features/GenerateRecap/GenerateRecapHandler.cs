@@ -7,7 +7,9 @@ namespace EnBref.Api.Features.GenerateRecap;
 
 /// <param name="Type">Type de récap à générer.</param>
 /// <param name="Publish">Faux : la génération s'arrête avant la publication.</param>
-public sealed record GenerateRecapCommand(RecapType Type, bool Publish);
+/// <param name="Date">Date du récap ; null : aujourd'hui. Le job quotidien la fixe pour qu'une tentative passée
+/// minuit ne date pas le récap du lendemain.</param>
+public sealed record GenerateRecapCommand(RecapType Type, bool Publish, DateOnly? Date = null);
 
 /// <param name="Recap">Null en cas d'échec de la collecte ou de la génération.</param>
 /// <param name="Artifact">Artefact visé ; null tant que la publication n'est pas tentée.</param>
@@ -74,7 +76,7 @@ public sealed class GenerateRecapHandler(
                 string.Join(", ", collection.Feeds.Select(feed => $"{feed.Feed.Source} {feed.Status}")));
         }
 
-        var date = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
+        var date = command.Date ?? DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
         var written = await pipeline.Writer.WriteAsync(new GenerationContext(date, collection.Headlines), cancellationToken);
         if (written.Recap is not { } recap)
         {

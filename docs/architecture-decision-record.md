@@ -373,3 +373,59 @@ system vit dans `design-system/`, hors de `web/`.
   concurrents sur la même branche, d'où une reprise par rebase au push.
 - **Coût :** en local, il faut copier le design system dans `web/design-system/` avant d'ouvrir le
   site, et le recopier après chaque changement.
+
+---
+
+## ADR-011 — Job quotidien en BackgroundService, heure de génération réglable, alertes ntfy
+
+**Date :** 2026-11-16 · **Statut :** Accepté
+
+### Contexte
+
+La génération quotidienne était prévue sur Quartz, à heure fixe (`0 0 17 * * ?`), sans que Quartz
+n'ait jamais été ajouté. Le besoin a changé : l'heure de génération doit se régler depuis le
+back-office et prendre effet sans redémarrage, et un récap du jour manquant doit être signalé.
+L'état de la génération quotidienne (démarrée ou arrêtée) vivait en mémoire et repartait
+« démarrée » à chaque redémarrage : un redéploiement annulait silencieusement un arrêt.
+
+### Décision
+
+- **Pas de Quartz.** Deux `BackgroundService` sur une boucle commune (`Shared/DailyJob`) : le job
+  quotidien (`DailyRecapJob`) à l'heure de génération, et la vérification de publication
+  (`PublicationCheckJob`) une heure après. La boucle attend l'échéance avec `TimeProvider` et la
+  recalcule dès que les réglages changent. Le calcul d'échéance (`Shared/DailySchedule`) est une
+  fonction pure, testée, y compris aux changements d'heure.
+- Les jobs déclenchent, les handlers décident : `GenerateDailyRecapHandler` (génération arrêtée →
+  rien ; trois tentatives espacées de dix minutes ; alerte au troisième échec) et
+  `CheckPublicationHandler` (récap du jour absent ou d'une autre date → alerte).
+- **Réglages persistés dans `settings.json`** du répertoire des données (`/data` en production),
+  écrits atomiquement, sans base. LiteDB reste réservé à l'historique. Sans `settings.json`, la
+  génération quotidienne est **arrêtée** : une stack neuve ne génère rien tant qu'on ne la démarre
+  pas depuis le back-office.
+- **La stack de production vit dans ce dépôt**, `infra/compose.prod.yml`, déployée par Komodo. Le
+  dépôt d'infrastructure `checquy` ne la porte plus : le compose suit le code qui en dépend (clés
+  de configuration, volume des réglages).
+- **Alertes sur ntfy**, derrière `IAlertSender` (Infrastructure) : quatrième dépendance sortante
+  abstraite, pour les stubs de test. Sans topic configuré, rien ne part. Aucun paquet ajouté.
+
+### Conséquences
+
+- Aucune dépendance nouvelle ; l'heure de génération change à chaud, et un arrêt survit au
+  redéploiement.
+- La vérification de publication détecte aussi ce que le job ne voit pas : publication écrasée,
+  job bloqué, échec silencieux.
+- **Coût :** pas de rattrapage. Une échéance manquée pendant un arrêt du serveur est perdue ; la
+  vérification ne la signale que si le serveur tourne une heure plus tard.
+- **Coût :** avancer l'heure de génération après la génération du jour vers une heure encore à
+  venir relance une génération le même jour (récap réécrit, crédits consommés).
+- **Coût :** si ntfy est injoignable, l'alerte est perdue (seulement loguée) : il n'y a pas
+  d'alerte sur l'alerte.
+- **Coût :** les deux jobs tournent aussi en local et en CI. Seule la génération quotidienne
+  arrêtée par défaut les empêche d'agir : la CI reçoit un `GithubToken` réel pour le smoke test, et
+  une stack locale démarrée avec une clé Anthropic consomme des crédits même sans publier.
+- **Coût :** chaque tentative relance une génération complète. Une panne de GitHub coûte trois
+  générations LLM pour un seul récap.
+- **Coût :** au premier déploiement, il faut démarrer la génération quotidienne à la main ; le
+  bandeau du back-office le rappelle.
+- **Coût :** une stack de production de plus dans ce dépôt, hors des conventions centralisées de
+  `checquy` : elles sont recopiées dans le compose, et à resynchroniser à la main.

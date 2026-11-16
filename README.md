@@ -2,7 +2,7 @@
 
 L'actualité du jour, lisible en deux minutes.
 
-Chaque jour à 17 h, EnBref collecte les titres de plusieurs flux RSS, en tire un récap de sept
+Chaque jour à l'heure de génération (17 h par défaut), EnBref collecte les titres de plusieurs flux RSS, en tire un récap de sept
 catégories — une à deux brèves chacune — et le publie. L'application iOS le lit au lancement.
 
 ## Comment ça marche
@@ -43,13 +43,13 @@ aucun port ouvert. C'est le choix structurant du projet ([ADR-001](docs/architec
 ## Démarrer
 
 ```bash
-cp infra/.env.local.example infra/.env.local   # renseigner OpenAiApiKey et NtfyToken
+cp infra/.env.local.example infra/.env.local   # Anthropic__ApiKey, Ntfy__* ; GithubToken reste vide
 docker compose -f infra/compose.local.yml up -d --build --wait
 ```
 
 L'API répond sur <http://localhost:8080/swagger>, la sonde sur `/health`.
 
-⚠️ Laisser `GithubToken` **vide** en local : renseigné, le job de 17 h publierait sur le CDN de
+⚠️ Laisser `GithubToken` **vide** en local : renseigné, le job quotidien publierait sur le CDN de
 production.
 
 ## État du projet

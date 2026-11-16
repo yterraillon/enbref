@@ -1,4 +1,5 @@
 using Anthropic;
+using EnBref.Infrastructure.Alerting;
 using EnBref.Infrastructure.Collection;
 using EnBref.Infrastructure.Llm;
 using EnBref.Infrastructure.Publication;
@@ -39,6 +40,9 @@ public static class DependencyInjection
             client.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
             client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
         });
+
+        services.Configure<NtfyOptions>(configuration.GetSection(NtfyOptions.SectionName));
+        services.AddHttpClient<IAlertSender, NtfyAlertSender>(client => client.Timeout = TimeSpan.FromSeconds(10));
 
         return services;
     }

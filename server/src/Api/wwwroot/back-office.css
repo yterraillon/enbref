@@ -25,6 +25,15 @@ body { margin: 0; background: var(--bg-grouped); color: var(--label); }
 
 .bo-main { flex: 999 1 var(--content-width-form); min-width: 0; padding: var(--space-36) var(--space-36) var(--space-36); }
 
+/* Bandeau d'alerte, en tête de toutes les pages */
+.bo-banner {
+    max-width: var(--content-width-table); margin: 0 auto var(--space-26);
+    display: flex; align-items: center; justify-content: space-between; gap: var(--space-12); flex-wrap: wrap;
+    padding: var(--space-12) var(--space-20); border-radius: var(--radius-card);
+    background: var(--surface); color: var(--warning); border: var(--hairline) solid var(--warning);
+}
+.bo-banner .bo-link { display: inline-flex; align-items: center; min-height: var(--tap-target); text-decoration: none; }
+
 /* Colonnes de page */
 .bo-page { max-width: var(--content-width-table); margin: 0 auto; display: flex; flex-direction: column; gap: var(--space-26); }
 .bo-page--form { max-width: var(--content-width-form); }

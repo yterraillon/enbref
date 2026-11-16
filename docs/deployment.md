@@ -5,9 +5,9 @@ preview.
 
 | | Local | Production |
 |---|---|---|
-| Orchestration | `infra/compose.local.yml` | `stacks/apps/enbref/docker-compose.yml` du dépôt `checquy` |
+| Orchestration | `infra/compose.local.yml` | `infra/compose.prod.yml`, déployé par Komodo |
 | Image | buildée depuis `server/` et `design-system/` | `ghcr.io/yterraillon/enbref/enbref-server:<CalVer>` |
-| Hôte | poste de dev | NAS Synology `therook`, derrière SWAG |
+| Hôte | poste de dev | NAS Synology `therook`, LAN uniquement |
 | Données | `infra/data/` | `/volume1/docker/enbref/data` |
 
 ## CI/CD
@@ -46,23 +46,43 @@ docker compose -f infra/compose.local.yml down -v   # arrêt + purge des donnée
 
 L'API répond sur <http://localhost:8080/swagger>, la sonde sur `/health`.
 
-⚠️ Laisser `GithubToken` **vide** en local : renseigné, le job quotidien de 17:00 publie sur le CDN
-de production comme le ferait la prod.
+⚠️ Laisser `GithubToken` **vide** en local : renseigné, le job quotidien publie sur le CDN de
+production à l'heure de génération, comme le ferait la prod. `Ntfy__Topic` vide : aucune alerte.
 
 ## Production
 
-La stack vit dans le dépôt d'infrastructure `checquy`, aux côtés des autres services auto-hébergés :
-`stacks/apps/enbref/docker-compose.yml`. Elle suit les conventions maison — réseau `appNet`,
-`read_only: true`, `cap_drop: ALL`, `no-new-privileges`, logging json-file 10m/3, PUID/PGID du NAS.
+La stack est décrite dans ce dépôt, `infra/compose.prod.yml`, et déployée par **Komodo** sur
+`therook`. Elle suit les conventions maison — réseau `appNet`, `read_only: true`, `cap_drop: ALL`,
+`no-new-privileges`, logging json-file 10m/3, PUID/PGID du NAS — et pose explicitement
+`ASPNETCORE_ENVIRONMENT=Production` et `TZ=Europe/Paris` (l'heure de génération est lue dans ce
+fuseau).
 
-Secrets injectés en variables d'environnement par la stack : `GithubToken`.
-Les clés du LLM et de ntfy seront définies à l'étape 2 de la reconstruction du serveur.
+Variables définies dans Komodo, toutes obligatoires sauf `Ntfy__Token` (le déploiement échoue si
+l'une manque) :
+
+| Variable | Rôle |
+|---|---|
+| `ENBREF_VERSION` | tag CalVer de l'image à déployer |
+| `PUID` / `PGID` | propriétaire de `/volume1/docker/enbref/data` |
+| `GithubToken` | publication des récaps |
+| `Anthropic__ApiKey` | API Claude |
+| `Ntfy__Topic` / `Ntfy__Token` | alertes : génération quotidienne en échec, récap du jour absent |
+
+`Ntfy__Url` est fixé dans le compose : `https://ntfy.checquy.ovh`, le serveur ntfy auto-hébergé.
+
+Le volume `/data` porte `settings.json` : génération quotidienne démarrée ou arrêtée, heure de
+génération (ADR-011). Il doit appartenir à `PUID:PGID`.
 
 **Le serveur ne doit jamais être publié vers internet** : aucune règle de pare-feu, de reverse proxy
 ni de redirection de port vers EnBref. C'est l'infrastructure, et elle seule, qui garantit que le
 back-office (sans authentification) reste sur le réseau local (ADR-006).
 
-Mise à jour : relever le tag CalVer dans le compose, puis redéployer la stack.
+**Premier déploiement** : la génération quotidienne démarre **arrêtée** (pas de `settings.json`).
+La démarrer depuis le back-office une fois les secrets vérifiés ; le bandeau le rappelle d'ici là.
+
+Mise à jour : merger sur `main` (`release-server.yml` pousse l'image `:<CalVer>`), relever
+`ENBREF_VERSION` dans Komodo, redéployer. Après un déploiement : `/health` renvoie la version, et
+« Envoyer une alerte de test » (Réglages) vérifie le topic ntfy.
 
 ## Publication du récap
 
@@ -100,7 +120,7 @@ dont `cdn/en-bref/data/`, n'est jamais touché.
 ## Migration depuis myfanwy
 
 EnBref tournait dans le conteneur `myfanwy` (`ghcr.io/yterraillon/myfanwy`), sur le même NAS. Pendant
-la transition, les deux applications embarquent le job de 17:00 : myfanwy publie
+la transition, les deux applications embarquent un job quotidien : myfanwy publie
 `latest-recap.json` (ancienne forme), enbref publie `latest.json` (ADR-008). Les deux artefacts ne
 se marchent pas dessus, et aucun client publié ne lit l'un ou l'autre : l'ordre de bascule n'a pas
 de contrainte de compatibilité.

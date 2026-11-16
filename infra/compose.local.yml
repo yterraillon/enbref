@@ -13,9 +13,13 @@
 #   http://localhost:8080/swagger   API
 #   http://localhost:8080/health    sonde
 #
-# ⚠️ Le job Quartz de génération quotidienne (17:00) tourne aussi dans cette stack :
-#    la laisser allumée à 17 h publie un récap sur le CDN GitHub si GithubToken est
-#    renseigné. Laisser GithubToken vide pour un usage purement local.
+# ⚠️ Le job quotidien tourne aussi dans cette stack, à l'heure de génération (17 h par
+#    défaut). La génération quotidienne est arrêtée tant qu'on ne la démarre pas dans le
+#    back-office (data/settings.json). Démarrée :
+#    - avec GithubToken renseigné, elle publie le récap du jour en PRODUCTION ;
+#    - avec Anthropic__ApiKey, elle consomme des crédits même sans GithubToken
+#      (trois tentatives, chacune régénère le récap).
+#    Laisser GithubToken vide pour un usage purement local.
 services:
   enbref-server:
     build:

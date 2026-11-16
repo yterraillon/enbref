@@ -1,5 +1,7 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject IHostEnvironment Environment
+@inject DailyGenerationSettingsStore DailyGeneration
 
 <div class="bo-shell">
     <nav class="bo-nav" aria-label="Navigation principale">
@@ -20,6 +22,21 @@
     </nav>
 
     <main class="bo-main">
+        @if (DailyGenerationTexts.Banner(DailyGeneration.Current) is { } banner)
+        {
+            <div class="bo-banner" role="alert">
+                <span class="subhead">@banner</span>
+                <a href="back-office/settings" class="callout bo-link">Réglages</a>
+            </div>
+        }
         @Body
     </main>
 </div>
+
+@code {
+    protected override void OnInitialized() => DailyGeneration.Changed += OnSettingsChanged;
+
+    public void Dispose() => DailyGeneration.Changed -= OnSettingsChanged;
+
+    private void OnSettingsChanged(DailyGenerationSettings _) => InvokeAsync(StateHasChanged);
+}
