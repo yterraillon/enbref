@@ -21,6 +21,9 @@ public sealed class CheckPublicationHandler(
     IAlertSender alertSender,
     ILogger<CheckPublicationHandler> logger)
 {
+    private const string Missing = "Récap du jour absent";
+    private const string Unchecked = "Récap du jour non vérifié";
+
     public async Task<CheckPublicationResult> HandleAsync(DateOnly expectedDate, CancellationToken cancellationToken)
     {
         if (!settings.Current.IsStarted)
@@ -30,13 +33,14 @@ public sealed class CheckPublicationHandler(
         }
 
         var read = await readPublishedRecap.HandleAsync(RecapType.Daily, cancellationToken);
-        var problem = read switch
+        // Une lecture en échec (réseau, JSON) ne prouve pas l'absence : titre distinct.
+        var (title, problem) = read switch
         {
-            { IsMissing: true } => $"{read.Artifact} est absent du dépôt de publication.",
-            { Recap: null } => $"{read.Artifact} est illisible : {read.Error}",
+            { IsMissing: true } => (Missing, $"{read.Artifact} est absent du dépôt de publication."),
+            { Recap: null } => (Unchecked, $"{read.Artifact} est illisible : {read.Error}"),
             { Recap.Date: var date } when date != expectedDate =>
-                $"{read.Artifact} est daté du {date:dd/MM/yyyy}, le récap du {expectedDate:dd/MM/yyyy} n'a pas été publié.",
-            _ => null,
+                (Missing, $"{read.Artifact} est daté du {date:dd/MM/yyyy}, le récap du {expectedDate:dd/MM/yyyy} n'a pas été publié."),
+            _ => (Missing, null),
         };
 
         if (problem is null)
@@ -46,7 +50,7 @@ public sealed class CheckPublicationHandler(
         }
 
         logger.LogError("Vérification de publication en échec : {Problem}", problem);
-        await alertSender.SendAsync(new Alert("Récap du jour absent", problem), cancellationToken);
+        await alertSender.SendAsync(new Alert(title, problem), cancellationToken);
         return new CheckPublicationResult(IsSkipped: false, problem);
     }
 }

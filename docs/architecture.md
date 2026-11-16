@@ -128,10 +128,12 @@ nom de domaine. Il ne consomme pas le récap.
 ## 6. État réel du serveur
 
 Le code importé de `myfanwy` a été supprimé (`387318c`) ; le serveur est **reconstruit de zéro**
-selon les règles ci-dessus (ADR-005). Le seul point d'entrée existant est
-`POST /api/recaps/generations` (`Features/GenerateRecap`). Son handler enchaîne collecte,
-génération et publication sur l'artefact du type de récap ; la clé d'ADR-006 n'est pas encore
-implémentée.
+selon les règles ci-dessus (ADR-005). Deux points d'entrée déclenchent une génération :
+`POST /api/recaps/generations` (`Features/GenerateRecap`), dont le handler enchaîne collecte,
+génération et publication sur l'artefact du type de récap — la clé d'ADR-006 n'est pas encore
+implémentée — et le **job quotidien** (`Features/GenerateDailyRecap`, ADR-011), qui publie le récap
+du jour à l'heure de génération. La **vérification de publication** (`Features/CheckPublication`)
+relit le récap du jour une heure plus tard et lève une alerte ntfy s'il manque.
 
 ## 7. Ce qui reste à décider
 

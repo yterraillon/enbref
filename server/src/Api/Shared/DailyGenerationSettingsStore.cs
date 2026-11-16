@@ -30,13 +30,16 @@ public sealed class DailyGenerationSettingsStore
     /// <summary>Levé après chaque modification enregistrée, avec les nouveaux réglages.</summary>
     public event Action<DailyGenerationSettings>? Changed;
 
-    public void Start() => Update(settings => settings with { IsStarted = true });
+    // Les trois modifications renvoient null si elles sont enregistrées, sinon la cause, en français :
+    // un /data en lecture seule ne doit pas faire tomber le back-office.
 
-    public void Stop() => Update(settings => settings with { IsStarted = false });
+    public string? Start() => Update(settings => settings with { IsStarted = true });
 
-    public void SetTime(TimeOnly time) => Update(settings => settings with { Time = new TimeOnly(time.Hour, time.Minute) });
+    public string? Stop() => Update(settings => settings with { IsStarted = false });
 
-    private void Update(Func<DailyGenerationSettings, DailyGenerationSettings> change)
+    public string? SetTime(TimeOnly time) => Update(settings => settings with { Time = new TimeOnly(time.Hour, time.Minute) });
+
+    private string? Update(Func<DailyGenerationSettings, DailyGenerationSettings> change)
     {
         DailyGenerationSettings updated;
         lock (gate)
@@ -44,16 +47,26 @@ public sealed class DailyGenerationSettingsStore
             updated = change(current);
             if (updated == current)
             {
-                return;
+                return null;
             }
 
-            Save(updated);
+            try
+            {
+                Save(updated);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                logger.LogError(exception, "Réglages non enregistrés dans {Path}.", path);
+                return $"Réglages non enregistrés dans {path} : {exception.Message}";
+            }
+
             current = updated;
         }
 
         logger.LogInformation("Génération quotidienne {State}, heure de génération {Time}.",
             updated.IsStarted ? "démarrée" : "arrêtée", updated.Time);
         Changed?.Invoke(updated);
+        return null;
     }
 
     private DailyGenerationSettings Load()

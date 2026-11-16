@@ -23,6 +23,15 @@ internal sealed class TemporarySettings : IDisposable
         return store;
     }
 
+    /// <summary>Store dont le répertoire des données est un fichier : toute écriture échoue.</summary>
+    public DailyGenerationSettingsStore Unwritable()
+    {
+        Directory.CreateDirectory(directory);
+        var blocked = Path.Combine(directory, "data");
+        File.WriteAllText(blocked, "");
+        return new(Options.Create(new DataOptions { Directory = blocked }), NullLogger<DailyGenerationSettingsStore>.Instance);
+    }
+
     public void Write(string content)
     {
         Directory.CreateDirectory(directory);

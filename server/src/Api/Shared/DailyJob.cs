@@ -25,11 +25,13 @@ public abstract class DailyJob(DailyGenerationSettingsStore settings, TimeProvid
         while (!stoppingToken.IsCancellationRequested)
         {
             using var changed = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-            void OnChanged(DailyGenerationSettings _)
+            void OnChanged(DailyGenerationSettings updated)
             {
                 try
                 {
-                    changed.Cancel();
+                    // Asynchrone : Changed est levé sur le circuit Blazor qui a modifié les réglages, la
+                    // boucle ne doit pas reprendre sur ce contexte.
+                    _ = changed.CancelAsync();
                 }
                 catch (ObjectDisposedException)
                 {
@@ -48,11 +50,11 @@ public abstract class DailyJob(DailyGenerationSettingsStore settings, TimeProvid
                 var delay = due - now;
                 if (delay > TimeSpan.Zero)
                 {
-                    await Task.Delay(delay, timeProvider, changed.Token);
+                    await Task.Delay(delay, timeProvider, changed.Token).ConfigureAwait(false);
                 }
 
                 notBefore = due;
-                await RunAsync(generationDate, stoppingToken);
+                await RunAsync(generationDate, stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (!stoppingToken.IsCancellationRequested)
             {

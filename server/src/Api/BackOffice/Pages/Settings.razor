@@ -27,6 +27,10 @@
             <div class="bo-form">
                 <TextField Id="generation-time" Type="time" Label="Heure de génération"
                            Value="@DailyGeneration.Current.Time.ToString("HH:mm")" ValueChanged="SetTime" />
+                @if (settingsError is not null)
+                {
+                    <div class="footnote bo-error">@settingsError</div>
+                }
             </div>
             <ListRow Compact="true">
                 <Title>Prochaine génération</Title>
@@ -114,6 +118,7 @@
     private bool isSending;
     private AlertResult? alertResult;
     private bool isSendingAlert;
+    private string? settingsError;
 
     // Un autre onglet peut changer les réglages : la page suit.
     protected override void OnInitialized() => DailyGeneration.Changed += OnSettingsChanged;
@@ -127,7 +132,7 @@
         // Saisie incomplète : le champ renvoie une chaîne vide, l'heure reste inchangée.
         if (TimeOnly.TryParse(value, out var time))
         {
-            DailyGeneration.SetTime(time);
+            settingsError = DailyGeneration.SetTime(time);
         }
     }
 
@@ -148,15 +153,6 @@
         isSending = false;
     }
 
-    private void ToggleDailyGeneration(bool isStarted)
-    {
-        if (isStarted)
-        {
-            DailyGeneration.Start();
-        }
-        else
-        {
-            DailyGeneration.Stop();
-        }
-    }
+    private void ToggleDailyGeneration(bool isStarted) =>
+        settingsError = isStarted ? DailyGeneration.Start() : DailyGeneration.Stop();
 }

@@ -74,6 +74,17 @@ public class NtfyAlertSenderTests
         await Assert.That(result.Error).Contains("injoignable");
     }
 
+    [Test]
+    public async Task Invalid_url_is_reported()
+    {
+        var (sender, handler) = Sender(new NtfyOptions { Url = "", Topic = "enbref" }, () => new HttpResponseMessage(HttpStatusCode.OK));
+
+        var result = await sender.SendAsync(Alert, CancellationToken.None);
+
+        await Assert.That(result.Error).Contains("URL ntfy invalide");
+        await Assert.That(handler.Requests).IsEmpty();
+    }
+
     private static string Decode(string? encodedWord) =>
         Encoding.UTF8.GetString(Convert.FromBase64String(encodedWord!["=?UTF-8?B?".Length..^2]));
 

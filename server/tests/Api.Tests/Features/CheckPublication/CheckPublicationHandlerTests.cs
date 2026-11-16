@@ -66,7 +66,9 @@ public class CheckPublicationHandlerTests
 
         await Handler().HandleAsync(Today, CancellationToken.None);
 
-        await Assert.That(alerts.Alerts.Single().Message).Contains("illisible");
+        var alert = alerts.Alerts.Single();
+        await Assert.That(alert.Title).IsEqualTo("Récap du jour non vérifié");
+        await Assert.That(alert.Message).Contains("illisible");
     }
 
     [Test]

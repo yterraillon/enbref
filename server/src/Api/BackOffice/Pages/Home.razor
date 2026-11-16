@@ -74,6 +74,10 @@
                 <Switch Checked="DailyGeneration.Current.IsStarted" CheckedChanged="ToggleDailyGeneration" Label="Génération quotidienne" />
             </div>
             <div class="footnote eb-muted">Prochaine génération : @DailyGenerationTexts.NextGeneration(DailyGeneration.Current, TimeProvider.GetUtcNow(), TimeProvider.LocalTimeZone)</div>
+            @if (settingsError is not null)
+            {
+                <div class="footnote bo-error">@settingsError</div>
+            }
         </Card>
     </div>
 
@@ -114,6 +118,7 @@
     private CollectionResult? collection;
     private bool isGenerating;
     private string? generationFeedback;
+    private string? settingsError;
 
     [Inject(Key = FeedReaderKeys.Rss)]
     private IFeedReader RssFeedReader { get; set; } = null!;
@@ -156,15 +161,6 @@
         isGenerating = false;
     }
 
-    private void ToggleDailyGeneration(bool isStarted)
-    {
-        if (isStarted)
-        {
-            DailyGeneration.Start();
-        }
-        else
-        {
-            DailyGeneration.Stop();
-        }
-    }
+    private void ToggleDailyGeneration(bool isStarted) =>
+        settingsError = isStarted ? DailyGeneration.Start() : DailyGeneration.Stop();
 }

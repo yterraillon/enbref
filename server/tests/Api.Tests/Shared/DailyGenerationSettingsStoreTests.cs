@@ -47,6 +47,20 @@ public class DailyGenerationSettingsStoreTests
     }
 
     [Test]
+    public async Task Unwritable_settings_are_reported_and_left_unchanged()
+    {
+        var store = settings.Unwritable();
+        var announcements = 0;
+        store.Changed += _ => announcements++;
+
+        var error = store.Start();
+
+        await Assert.That(error).StartsWith("Réglages non enregistrés");
+        await Assert.That(store.Current).IsEqualTo(DailyGenerationSettings.Default);
+        await Assert.That(announcements).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task Changes_are_announced_with_the_new_settings()
     {
         var store = settings.Store();

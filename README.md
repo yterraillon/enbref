@@ -43,7 +43,7 @@ aucun port ouvert. C'est le choix structurant du projet ([ADR-001](docs/architec
 ## Démarrer
 
 ```bash
-cp infra/.env.local.example infra/.env.local   # renseigner OpenAiApiKey et NtfyToken
+cp infra/.env.local.example infra/.env.local   # Anthropic__ApiKey, Ntfy__* ; GithubToken reste vide
 docker compose -f infra/compose.local.yml up -d --build --wait
 ```
 

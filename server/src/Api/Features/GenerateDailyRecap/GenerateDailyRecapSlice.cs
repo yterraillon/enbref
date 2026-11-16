@@ -27,6 +27,6 @@ public sealed class DailyRecapJob(
     protected override async Task RunAsync(DateOnly generationDate, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<GenerateDailyRecapHandler>().HandleAsync(cancellationToken);
+        await scope.ServiceProvider.GetRequiredService<GenerateDailyRecapHandler>().HandleAsync(generationDate, cancellationToken);
     }
 }

@@ -16,21 +16,9 @@ public sealed class NtfyAlertSender(HttpClient httpClient, IOptions<NtfyOptions>
             return new AlertResult("Aucun topic ntfy configuré.");
         }
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{ntfy.Url.TrimEnd('/')}/{Uri.EscapeDataString(ntfy.Topic)}")
-        {
-            Content = new StringContent(alert.Message, Encoding.UTF8, "text/plain"),
-        };
-        // Un en-tête HTTP reste en ASCII : l'encodage RFC 2047, que ntfy décode, garde les accents du titre.
-        request.Headers.Add("Title", $"=?UTF-8?B?{Convert.ToBase64String(Encoding.UTF8.GetBytes(alert.Title))}?=");
-        request.Headers.Add("Priority", "high");
-        request.Headers.Add("Tags", "warning");
-        if (!string.IsNullOrWhiteSpace(ntfy.Token))
-        {
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ntfy.Token);
-        }
-
         try
         {
+            using var request = Request(ntfy, alert);
             using var response = await httpClient.SendAsync(request, cancellationToken);
             if (response.IsSuccessStatusCode)
             {
@@ -48,5 +36,28 @@ public sealed class NtfyAlertSender(HttpClient httpClient, IOptions<NtfyOptions>
             logger.LogError(exception, "Alerte {Title} non envoyée : ntfy injoignable.", alert.Title);
             return new AlertResult($"ntfy injoignable : {exception.Message}");
         }
+        catch (Exception exception) when (exception is UriFormatException or InvalidOperationException)
+        {
+            logger.LogError(exception, "Alerte {Title} non envoyée : URL ntfy invalide ({Url}).", alert.Title, ntfy.Url);
+            return new AlertResult($"URL ntfy invalide : « {ntfy.Url} ».");
+        }
+    }
+
+    private static HttpRequestMessage Request(NtfyOptions ntfy, Alert alert)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{ntfy.Url.TrimEnd('/')}/{Uri.EscapeDataString(ntfy.Topic)}")
+        {
+            Content = new StringContent(alert.Message, Encoding.UTF8, "text/plain"),
+        };
+        // Un en-tête HTTP reste en ASCII : l'encodage RFC 2047, que ntfy décode, garde les accents du titre.
+        request.Headers.Add("Title", $"=?UTF-8?B?{Convert.ToBase64String(Encoding.UTF8.GetBytes(alert.Title))}?=");
+        request.Headers.Add("Priority", "high");
+        request.Headers.Add("Tags", "warning");
+        if (!string.IsNullOrWhiteSpace(ntfy.Token))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ntfy.Token);
+        }
+
+        return request;
     }
 }

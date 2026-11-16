@@ -39,8 +39,8 @@ chacune portant une à deux brèves.
 ### Récap du jour
 **Code** : `DailyRecap` · **UI** : « Récap du jour » · **Artefact** : `latest.json`
 
-Le récap le plus récent. Produit chaque jour à 17 h par le job de génération, à partir de l'API
-Claude, puis publié sur le dépôt de publication. C'est le seul récap que l'application iOS consomme
+Le récap le plus récent. Produit chaque jour à l'heure de génération (17 h par défaut) par le job
+quotidien, à partir de l'API Claude, puis publié sur le dépôt de publication. C'est le seul récap que l'application iOS consomme
 en usage normal.
 
 **À ne pas dire** : récap courant, latest (employé seul), récap actuel.
@@ -261,6 +261,9 @@ absent, illisible ou d'une autre date lève une alerte.
 
 Le message envoyé sur ntfy quand la génération quotidienne échoue après ses trois tentatives, ou
 quand la vérification de publication échoue. Une alerte de test s'envoie depuis les Réglages.
+
+« Topic ntfy » (le canal ntfy où partent les alertes) est un terme technique admis : il ne désigne
+pas une Catégorie, pour laquelle « topic » reste proscrit.
 
 **À ne pas dire** : notification (réservé aux notifications de l'application iOS), push, ping.
 
