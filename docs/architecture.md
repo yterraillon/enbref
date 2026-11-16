@@ -69,12 +69,12 @@ bout sans naviguer entre quatre projets.
 ### Ce qui reste partagé
 
 Tout ce qui sert plusieurs slices, et rien d'autre : lecture des flux RSS, client LLM, publication
-sur le CDN, accès LiteDB, notification ntfy, sérialisation JSON. Une abstraction ne devient
+sur le CDN, accès LiteDB, alerte (ntfy), sérialisation JSON. Une abstraction ne devient
 partagée que lorsqu'un **deuxième** appelant la réclame.
 
 ### Ce qui traverse les frontières
 
-Le serveur a trois dépendances sortantes, et chacune doit rester derrière une abstraction, pour une
+Le serveur a quatre dépendances sortantes, et chacune doit rester derrière une abstraction, pour une
 raison précise :
 
 | Dépendance | Abstraction | Pourquoi |
@@ -82,6 +82,7 @@ raison précise :
 | Flux RSS | lecteur de flux | Les sources changent ; le format aussi (RSS, Atom). |
 | LLM | client LLM (`ILlmClient`) | Claude est le seul fournisseur (ADR-007) ; le contrat permet les stubs de test et la future couche d'inférence. Il traduit les erreurs du fournisseur en statuts neutres. L'**agent de génération**, qui porte le prompt et la validation du récap, vit dans le slice de génération : ce sont des règles métier. Le récap de test ne l'appelle pas. |
 | Dépôt de publication | dépôt de publication (`IPublicationRepository`) | La destination peut changer ; surtout, le récap de test ne doit atteindre que `test.json`. |
+| Alertes (ntfy) | envoi d'alertes (`IAlertSender`) | Stubs de test ; un échec d'envoi est rendu, jamais levé ; sans topic, rien ne part (ADR-011). |
 
 LiteDB n'est pas dans cette liste : l'historique est un détail interne, et une abstraction de
 persistance posée « au cas où » coûte plus qu'elle ne rapporte.

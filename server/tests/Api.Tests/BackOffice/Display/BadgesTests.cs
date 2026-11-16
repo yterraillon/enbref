@@ -2,6 +2,7 @@ using EnBref.Api.BackOffice.Display;
 using EnBref.Api.Features.CollectHeadlines;
 using EnBref.Api.Features.ReadPublishedRecap;
 using EnBref.Api.Shared;
+using EnBref.Infrastructure.Alerting;
 using EnBref.Infrastructure.Collection;
 using EnBref.Infrastructure.Llm;
 
@@ -73,5 +74,12 @@ public class BadgesTests
     public async Task Every_llm_status_has_a_badge(LlmStatus status, BadgeTone tone)
     {
         await Assert.That(Badges.ForLlm(status).Tone).IsEqualTo(tone);
+    }
+
+    [Test]
+    public async Task Sent_alert_is_a_success_and_unsent_alert_a_danger()
+    {
+        await Assert.That(Badges.ForAlert(new AlertResult(Error: null))).IsEqualTo(new Badge("Envoyée", BadgeTone.Success));
+        await Assert.That(Badges.ForAlert(new AlertResult("Aucun topic ntfy configuré."))).IsEqualTo(new Badge("Non envoyée", BadgeTone.Danger));
     }
 }

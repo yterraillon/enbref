@@ -65,13 +65,13 @@ Deux environnements, pas de tier preview. Détail dans `docs/deployment.md`.
 
 | | Local | Production |
 |---|---|---|
-| Orchestration | `infra/compose.local.yml` | dépôt d'infrastructure `checquy` |
+| Orchestration | `infra/compose.local.yml` | `infra/compose.prod.yml`, déployé par Komodo |
 | Image | buildée depuis `server/` et `design-system/` (ADR-009) | `ghcr.io/yterraillon/enbref/enbref-server:<CalVer>` |
 | Hôte | poste de dev | NAS Synology `therook` |
 
 Versionnement **CalVer** `YYYY.MM.DD.NN` (ADR-004).
 
-⚠️ La stack locale fait tourner le job de 17 h. Laisser `GithubToken` **vide** en local : renseigné,
+⚠️ La stack locale fait tourner le job quotidien (heure de génération, 17 h par défaut). Laisser `GithubToken` **vide** en local : renseigné,
 une génération écrase le récap de **production**.
 
 ## Les trois récaps
@@ -80,12 +80,12 @@ Trois notions distinctes — ne pas les confondre, le glossaire les sépare expl
 
 | | Artefact | Généré | Rôle |
 |---|---|---|---|
-| **Récap du jour** | `latest.json` | Job quotidien 17 h, API Claude | Ce que lisent les clients |
+| **Récap du jour** | `latest.json` | Job quotidien à l'heure de génération (17 h par défaut), API Claude | Ce que lisent les clients |
 | **Récap de démo** | `demo.json` | À la demande, puis figé et relu | Revue App Store, test de chargement |
 | **Récap de test** | `test.json` | À la demande, fausse source, sans LLM | CI, vérification de la publication |
 
 Le rôle de chacun est détaillé dans `docs/recaps.md`. Les trois sont publiés par
-`POST /api/recaps/generations` (`publish: true`) ; le job de 17 h n'existe pas encore. Forme JSON :
+`POST /api/recaps/generations` (`publish: true`) ; le récap du jour l'est aussi par le job quotidien (ADR-011). Forme JSON :
 ADR-008.
 
 ## Stack Docker locale

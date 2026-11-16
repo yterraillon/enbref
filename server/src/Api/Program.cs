@@ -1,10 +1,12 @@
 using System.Text.Json.Serialization;
 using EnBref.Api;
 using EnBref.Api.BackOffice;
+using EnBref.Api.Features.CheckPublication;
 using EnBref.Api.Features.CollectHeadlines;
+using EnBref.Api.Features.GenerateDailyRecap;
 using EnBref.Api.Features.GenerateRecap;
 using EnBref.Api.Features.ReadPublishedRecap;
-using EnBref.Api.Features.ToggleDailyGeneration;
+using EnBref.Api.Shared;
 using EnBref.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
@@ -20,7 +22,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddCollectHeadlines();
 builder.Services.AddGenerateRecap();
 builder.Services.AddReadPublishedRecap();
-builder.Services.AddToggleDailyGeneration();
+builder.Services.AddDailyGenerationSettings(builder.Configuration);
+builder.Services.AddGenerateDailyRecap();
+builder.Services.AddCheckPublication();
 
 var app = builder.Build();
 

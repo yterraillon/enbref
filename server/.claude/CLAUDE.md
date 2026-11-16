@@ -17,22 +17,27 @@ src/
 │   │   ├── GenerateRecap/   Endpoint (Add…/Map…), Handler (+ Command, Result ; type → pipeline),
 │   │   │                    IRecapWriter (GenerationAgent : prompt + validation, TestRecapWriter)
 │   │   ├── ReadPublishedRecap/ lecture du récap publié à la source, appelée en mémoire (back-office)
-│   │   └── ToggleDailyGeneration/ DailyGenerationSwitch : génération quotidienne démarrée ou arrêtée (back-office)
+│   │   ├── GenerateDailyRecap/ job quotidien (DailyRecapJob) + handler : 3 tentatives, puis alerte (ADR-011)
+│   │   └── CheckPublication/ vérification de publication, heure de génération + 1 h, alerte si le récap manque
 │   ├── Shared/              types servant à plusieurs slices : Recap (modèle, RecapType → libellé et artefact),
-│   │                        RecapContract (JSON publié, ADR-008 : sérialisation et relecture)
+│   │                        RecapContract (JSON publié, ADR-008 : sérialisation et relecture),
+│   │                        DailySchedule (échéances) et DailyJob (boucle des deux jobs),
+│   │                        DailyGenerationSettings(Store) : démarrée/arrêtée et heure de génération,
+│   │                        /data/settings.json, événement Changed — modifiés par le back-office seul
 │   └── BackOffice/          Blazor Server, servi sous /back-office
 │       ├── Components/      composants du design system en Razor (markup de bundle.js), GenerateButton
 │       ├── Display/         résultats → libellés, badges, dates FR, dernier récap : testés, sans Blazor
 │       └── Layout/, Pages/  coquille et écrans (Accueil, Récaps, Flux RSS, Réglages)
 └── Infrastructure/          implémentations des dépendances sortantes
     ├── Collection/          IFeedReader : RssFeedReader (réel), FakeFeedReader (récap de test)
+    ├── Alerting/            IAlertSender : NtfyAlertSender (erreurs → AlertResult, jamais d'exception)
     ├── Llm/                 ILlmClient : AnthropicLlmClient (erreurs SDK → LlmStatus)
     └── Publication/         IPublicationRepository : GithubPublicationRepository (API Contents GitHub, publication et
                              lecture sans CDN ; erreurs → PublicationResult, ArtifactReadResult)
 ```
 
 **Pas de MediatR.** Les handlers sont des classes ordinaires, injectées et appelées directement par
-l'endpoint, le job Quartz ou le back-office.
+l'endpoint, un job quotidien ou le back-office.
 
 **Pas de modules.** Le domaine est l'application.
 
@@ -44,13 +49,14 @@ Chaque slice expose `Add<Slice>()` pour la DI et `Map<Slice>()` pour la route, a
 
 ### Quand une abstraction est justifiée
 
-Trois dépendances sortantes doivent rester derrière un contrat, chacune pour une raison précise :
+Quatre dépendances sortantes doivent rester derrière un contrat, chacune pour une raison précise :
 
 | Dépendance | Pourquoi l'abstraire |
 |---|---|
 | Flux RSS | les sources changent, le format aussi (RSS, Atom) |
 | LLM | Claude seul fournisseur (ADR-007) ; stubs en test, couche d'inférence à venir |
 | Dépôt de publication | la destination peut changer, et le récap de test ne publie que sur `test.json` |
+| Alertes (ntfy) | stubs en test ; aucune alerte ne part sans topic configuré (ADR-011) |
 
 **LiteDB n'en fait pas partie.** L'historique est un détail interne ; un `IRepository<T>` posé « au
 cas où » ajoute de l'indirection sans bénéfice.
@@ -82,7 +88,7 @@ test, jamais dans un `.razor`.
   se passer d'authentification.
 - **Ajouter une dépendance sans ADR.** `Directory.Packages.props` centralise les versions ; une
   entrée nouvelle est une décision.
-- **Mettre une règle métier dans un contrôleur, un job Quartz ou un composant Blazor.** Ces trois-là
+- **Mettre une règle métier dans un contrôleur, un job quotidien ou un composant Blazor.** Ces trois-là
   déclenchent et affichent ; ils ne décident pas.
 
 ## Le contrat publié
@@ -111,25 +117,33 @@ aujourd'hui (par l'ancien serveur) a une autre forme** : voir le § 9 du glossai
 ## Configuration et secrets
 
 Clés lues dans le Secret Manager en développement et dans les variables d'environnement en
-`Production`. La clé ntfy sera définie à l'étape 2 de la reconstruction.
+`Production`.
 
 | Clé | Rôle |
 |---|---|
 | `GithubToken` | publication — **vide en local**, sinon on écrase la production ; absent → publication en échec (502), lecture sans jeton (dépôt public) |
 | `Anthropic:ApiKey` | API Claude — user secrets en local, `Anthropic__ApiKey` en production |
 | `Anthropic:Model` | modèle Claude — `claude-haiku-4-5` en Development, `claude-opus-5-5` sinon |
+| `Ntfy:Topic` | topic des alertes — `Ntfy__Topic` en production ; vide → aucune alerte (local par défaut) |
+| `Ntfy:Token` | jeton ntfy, facultatif (topic public) ; `Ntfy:Url` vaut `https://ntfy.sh` par défaut |
+| `Data:Directory` | répertoire de `settings.json` — `/data` (volume) par défaut, `App_Data` en Development |
 
 Aucun secret en clair dans le dépôt, y compris dans `.agentsworkspace/`.
 
 ## Le job quotidien
 
-Quartz, `0 0 17 * * ?`, fuseau du conteneur (`Europe/Paris`). Il enchaîne collecte, génération,
-publication, puis notifie sur ntfy en cas d'échec. Il ne génère rien si la génération quotidienne
-est arrêtée depuis le back-office (`DailyGenerationSwitch`, en mémoire : repart démarrée au
-redémarrage).
+Deux `BackgroundService` sans Quartz (ADR-011), sur la boucle de `Shared/DailyJob` : le **job
+quotidien** à l'heure de génération (17 h par défaut, réglable dans les Réglages, fuseau du
+conteneur `Europe/Paris`), et la **vérification de publication** une heure après. Ils recalculent
+leur échéance dès que les réglages changent et ne décident rien : les handlers sautent tout si la
+génération quotidienne est arrêtée, retentent trois fois, puis lèvent une alerte ntfy.
 
-Il tourne **aussi dans la stack locale**. Une stack laissée allumée à 17 h avec un `GithubToken`
-renseigné publie en production.
+L'état démarrée/arrêtée et l'heure de génération sont persistés dans `/data/settings.json`. Sans ce
+fichier, la génération quotidienne est **arrêtée** : local, CI et premier déploiement ne génèrent
+rien. Un arrêt survit au redéploiement ; le back-office l'annonce en bandeau sur toutes ses pages.
+
+Ils tournent **aussi dans la stack locale**. Une stack laissée allumée à l'heure de génération avec
+un `GithubToken` renseigné publie en production.
 
 ## Tests
 

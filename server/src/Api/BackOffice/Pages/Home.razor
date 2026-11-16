@@ -2,17 +2,16 @@
 @using EnBref.Api.Features.CollectHeadlines
 @using EnBref.Api.Features.GenerateRecap
 @using EnBref.Api.Features.ReadPublishedRecap
-@using EnBref.Api.Features.ToggleDailyGeneration
-@using EnBref.Api.Shared
 @using EnBref.Infrastructure.Collection
 @using EnBref.Infrastructure.Llm
 @using Microsoft.Extensions.Options
 @inject GenerateRecapHandler GenerateRecap
 @inject ReadPublishedRecapHandler ReadPublishedRecap
 @inject CollectHeadlinesHandler CollectHeadlines
-@inject DailyGenerationSwitch DailyGeneration
+@inject DailyGenerationSettingsStore DailyGeneration
 @inject IOptions<AnthropicOptions> AnthropicOptions
 @inject TimeProvider TimeProvider
+@implements IDisposable
 
 <PageTitle>EnBref — Accueil</PageTitle>
 
@@ -71,10 +70,10 @@
         <Card Class="bo-tile" Label="Génération quotidienne">
             <h2 class="eyebrow eb-caps eb-muted">Génération quotidienne</h2>
             <div class="bo-tile-switch">
-                <span class="body">@RecapTexts.DailyGeneration(DailyGeneration.IsStarted)</span>
-                <Switch Checked="DailyGeneration.IsStarted" CheckedChanged="ToggleDailyGeneration" Label="Génération quotidienne" />
+                <span class="body">@RecapTexts.DailyGeneration(DailyGeneration.Current.IsStarted)</span>
+                <Switch Checked="DailyGeneration.Current.IsStarted" CheckedChanged="ToggleDailyGeneration" Label="Génération quotidienne" />
             </div>
-            <div class="footnote eb-muted">Sans effet tant que le job quotidien n’existe pas.</div>
+            <div class="footnote eb-muted">Prochaine génération : @DailyGenerationTexts.NextGeneration(DailyGeneration.Current, TimeProvider.GetUtcNow(), TimeProvider.LocalTimeZone)</div>
         </Card>
     </div>
 
@@ -119,8 +118,14 @@
     [Inject(Key = FeedReaderKeys.Rss)]
     private IFeedReader RssFeedReader { get; set; } = null!;
 
+    public void Dispose() => DailyGeneration.Changed -= OnSettingsChanged;
+
+    // Un autre onglet peut changer les réglages : la tuile suit.
+    private void OnSettingsChanged(DailyGenerationSettings _) => InvokeAsync(StateHasChanged);
+
     protected override async Task OnInitializedAsync()
     {
+        DailyGeneration.Changed += OnSettingsChanged;
         var collecting = CollectAsync();
         var results = await Task.WhenAll(Enum.GetValues<RecapType>()
             .Select(async type => (Type: type, Result: await ReadPublishedRecap.HandleAsync(type, CancellationToken.None))));

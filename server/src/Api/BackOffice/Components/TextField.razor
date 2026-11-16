@@ -3,7 +3,7 @@
     {
         <label for="@Id" class="eb-field-label footnote">@Label</label>
     }
-    <input id="@Id" class="body" placeholder="@Placeholder" aria-invalid="@(Error is not null ? "true" : null)"
+    <input id="@Id" type="@Type" class="body" placeholder="@Placeholder" aria-invalid="@(Error is not null ? "true" : null)"
            value="@Value" @oninput="OnInputAsync" />
     @if ((Error ?? Hint) is { } hint)
     {
@@ -17,6 +17,10 @@
 
     [Parameter]
     public string? Label { get; set; }
+
+    /// <summary>Type de l'input HTML : <c>text</c>, <c>time</c>…</summary>
+    [Parameter]
+    public string Type { get; set; } = "text";
 
     [Parameter]
     public string? Placeholder { get; set; }

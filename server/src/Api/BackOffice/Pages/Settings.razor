@@ -1,11 +1,15 @@
 @page "/back-office/settings"
-@using EnBref.Api.Features.ToggleDailyGeneration
+@using EnBref.Infrastructure.Alerting
 @using EnBref.Infrastructure.Llm
 @using Microsoft.Extensions.Options
-@inject DailyGenerationSwitch DailyGeneration
+@inject DailyGenerationSettingsStore DailyGeneration
 @inject ILlmClient LlmClient
 @inject IOptions<AnthropicOptions> AnthropicOptions
 @inject IHostEnvironment Environment
+@inject IAlertSender AlertSender
+@inject IOptions<NtfyOptions> NtfyOptions
+@inject TimeProvider TimeProvider
+@implements IDisposable
 
 <PageTitle>EnBref — Réglages</PageTitle>
 
@@ -13,13 +17,41 @@
     <LargeTitle Title="Réglages" />
 
     <div>
-        <ListSection Header="Génération" Footer="Sans effet tant que le job quotidien n’existe pas.">
+        <ListSection Header="Génération" Footer="Le récap du jour est vérifié une heure après l’heure de génération. Si la génération du jour a déjà eu lieu, une heure plus tardive la relance aujourd’hui.">
             <ListRow>
                 <Title>Génération quotidienne</Title>
                 <Trailing>
-                    <Switch Checked="DailyGeneration.IsStarted" CheckedChanged="ToggleDailyGeneration" Label="Génération quotidienne" />
+                    <Switch Checked="DailyGeneration.Current.IsStarted" CheckedChanged="ToggleDailyGeneration" Label="Génération quotidienne" />
                 </Trailing>
             </ListRow>
+            <div class="bo-form">
+                <TextField Id="generation-time" Type="time" Label="Heure de génération"
+                           Value="@DailyGeneration.Current.Time.ToString("HH:mm")" ValueChanged="SetTime" />
+            </div>
+            <ListRow Compact="true">
+                <Title>Prochaine génération</Title>
+                <Trailing><span class="body eb-muted">@DailyGenerationTexts.NextGeneration(DailyGeneration.Current, TimeProvider.GetUtcNow(), TimeProvider.LocalTimeZone)</span></Trailing>
+            </ListRow>
+        </ListSection>
+
+        <ListSection Header="Alertes" Footer="Les échecs de la génération quotidienne et de la vérification de publication sont envoyés sur ntfy.">
+            <ListRow Compact="true">
+                <Title>Topic ntfy</Title>
+                <Trailing><span class="body eb-muted">@DailyGenerationTexts.Topic(NtfyOptions.Value.Topic)</span></Trailing>
+            </ListRow>
+            <div class="bo-form">
+                <div class="bo-actions">
+                    <Button Disabled="isSendingAlert" OnClick="SendTestAlertAsync">@(isSendingAlert ? "Envoi…" : "Envoyer une alerte de test")</Button>
+                    @if (alertResult is not null)
+                    {
+                        <DisplayBadge Value="Badges.ForAlert(alertResult)" />
+                    }
+                </div>
+                @if (alertResult?.Error is { } alertError)
+                {
+                    <div class="footnote bo-error">@alertError</div>
+                }
+            </div>
         </ListSection>
 
         <ListSection Header="Modèle" Footer="Le modèle rédige les brèves à partir des titres collectés.">
@@ -80,6 +112,33 @@
     private string? message;
     private LlmResponse? response;
     private bool isSending;
+    private AlertResult? alertResult;
+    private bool isSendingAlert;
+
+    // Un autre onglet peut changer les réglages : la page suit.
+    protected override void OnInitialized() => DailyGeneration.Changed += OnSettingsChanged;
+
+    public void Dispose() => DailyGeneration.Changed -= OnSettingsChanged;
+
+    private void OnSettingsChanged(DailyGenerationSettings _) => InvokeAsync(StateHasChanged);
+
+    private void SetTime(string? value)
+    {
+        // Saisie incomplète : le champ renvoie une chaîne vide, l'heure reste inchangée.
+        if (TimeOnly.TryParse(value, out var time))
+        {
+            DailyGeneration.SetTime(time);
+        }
+    }
+
+    private async Task SendTestAlertAsync()
+    {
+        isSendingAlert = true;
+        alertResult = null;
+        alertResult = await AlertSender.SendAsync(
+            new Alert("Alerte de test", "Les alertes d’EnBref arrivent bien sur ce topic."), CancellationToken.None);
+        isSendingAlert = false;
+    }
 
     private async Task SendAsync()
     {

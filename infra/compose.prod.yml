@@ -1,0 +1,60 @@
+# Stack: enbref — production
+# Déployée par Komodo sur le NAS Synology `therook`, depuis ce dépôt.
+#
+# Variables à définir dans Komodo (le déploiement échoue si l'une manque, sauf Ntfy__Token) :
+#   ENBREF_VERSION      tag CalVer de l'image (YYYY.MM.DD.NN, ADR-004) — à relever à chaque release
+#   PUID / PGID         propriétaire de /volume1/docker/enbref/data sur le NAS
+#   GithubToken         publication sur yterraillon.github.io (latest.json, demo.json, test.json)
+#   Anthropic__ApiKey   API Claude
+#   Ntfy__Topic         topic des alertes
+#   Ntfy__Token         jeton ntfy (tk_…) de l'utilisateur enbref, en écriture seule sur le topic
+#
+# ⚠️ Le serveur n'est jamais publié vers internet : aucune règle de reverse proxy, de pare-feu ni
+#    de redirection de port vers ce conteneur. Le back-office, sans authentification, reste sur le
+#    réseau local (ADR-006).
+services:
+  enbref-server:
+    image: ghcr.io/yterraillon/enbref/enbref-server:${ENBREF_VERSION:?ENBREF_VERSION requis}
+    container_name: enbref-server
+    user: "${PUID:?PUID requis}:${PGID:?PGID requis}"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "8080:8080"   # LAN uniquement
+    environment:
+      # Explicite : une valeur vide ferait tourner la production dans un environnement anonyme.
+      - ASPNETCORE_ENVIRONMENT=Production
+      # L'heure de génération réglée dans le back-office est lue dans ce fuseau.
+      - TZ=Europe/Paris
+      - GithubToken=${GithubToken:?GithubToken requis}
+      - Anthropic__ApiKey=${Anthropic__ApiKey:?Anthropic__ApiKey requis}
+      # Serveur ntfy auto-hébergé ; topic et jeton restent dans Komodo.
+      - Ntfy__Url=https://ntfy.checquy.ovh
+      - Ntfy__Topic=${Ntfy__Topic:?Ntfy__Topic requis}
+      - Ntfy__Token=${Ntfy__Token:-}
+    volumes:
+      # settings.json : génération quotidienne démarrée ou arrêtée, heure de génération.
+      - /volume1/docker/enbref/data:/data
+    networks:
+      - appNet
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+networks:
+  appNet:
+    external: true

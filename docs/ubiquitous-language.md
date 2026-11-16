@@ -220,20 +220,49 @@ dès qu'au moins un titre est collecté ; sinon, la génération échoue.
 **Code** : `Generation` · **UI** : « Génération »
 
 L'étape qui transforme les titres collectés en un récap, via le LLM. Le job quotidien enchaîne
-collecte puis génération à 17 h ; en cas d'échec, trois tentatives avant alerte sur ntfy.
+collecte, génération et publication à l'heure de génération ; en cas d'échec, trois tentatives
+espacées de dix minutes avant une alerte.
 
 **À ne pas dire** : build, création, compilation, traitement.
 
 ### Génération quotidienne
-**Code** : `DailyGeneration` (`DailyGenerationSwitch`) · **UI** : « Génération quotidienne »,
-« démarrée » / « arrêtée »
+**Code** : `DailyGeneration` (`DailyGenerationSettings.IsStarted`, slice `GenerateDailyRecap`) ·
+**UI** : « Génération quotidienne », « démarrée » / « arrêtée »
 
-La génération du récap du jour, lancée chaque jour à 17 h par le job quotidien. Elle se démarre et
-s'arrête depuis le back-office ; arrêtée, aucun récap du jour n'est produit. « Génération » y est
-pris dans son sens complet, collecte → génération → publication (§ 9). « Job quotidien » reste le
-terme technique (Quartz) qui l'exécute.
+La génération du récap du jour, lancée chaque jour à l'heure de génération par le job quotidien.
+Elle se démarre et s'arrête depuis le back-office, et cet état survit au redémarrage du serveur ;
+une installation neuve la trouve arrêtée ;
+arrêtée, aucun récap du jour n'est produit et le back-office l'annonce en bandeau sur toutes ses
+pages. « Génération » y est pris dans son sens complet, collecte → génération → publication (§ 9).
+« Job quotidien » reste le terme technique (`DailyRecapJob`) qui l'exécute.
 
 **À ne pas dire** : génération automatique, auto-génération, planification, cron, tâche planifiée.
+
+### Heure de génération
+**Code** : `DailyGenerationSettings.Time` · **UI** : « Heure de génération »
+
+L'heure, en heure de Paris, à laquelle le job quotidien lance la génération quotidienne. 17 h par
+défaut, réglable depuis les Réglages du back-office ; un changement prend effet sans redémarrage.
+
+**À ne pas dire** : heure du cron, horaire, créneau, planification.
+
+### Vérification de publication
+**Code** : `CheckPublication` (`CheckPublicationHandler`, `PublicationCheckJob`) · **UI** :
+« Vérification de publication »
+
+Le contrôle, une heure après l'heure de génération, que le récap du jour publié porte bien la date
+de la génération quotidienne. Il ne tourne que si la génération quotidienne est démarrée ; un récap
+absent, illisible ou d'une autre date lève une alerte.
+
+**À ne pas dire** : monitoring, watchdog, healthcheck, sonde.
+
+### Alerte
+**Code** : `Alert` (`IAlertSender`, `NtfyAlertSender`) · **UI** : « Alerte »
+
+Le message envoyé sur ntfy quand la génération quotidienne échoue après ses trois tentatives, ou
+quand la vérification de publication échoue. Une alerte de test s'envoie depuis les Réglages.
+
+**À ne pas dire** : notification (réservé aux notifications de l'application iOS), push, ping.
 
 ### Publication
 **Code** : `Publication` · **UI** : « Publication »
@@ -334,6 +363,9 @@ demandée au LLM reste 200 et que ses dépassements observés restent proches (�
 | scraping, ingestion, crawl | Collecte |
 | push, upload, déploiement | Publication |
 | génération automatique, planification, cron | Génération quotidienne |
+| heure du cron, horaire, créneau | Heure de génération |
+| monitoring, watchdog, healthcheck (du récap publié) | Vérification de publication |
+| notification, push, ping (côté serveur) | Alerte |
 | fichier, export, snapshot (d'un récap publié) | Artefact |
 | publieur, publisher (pour le dépôt de publication) | Dépôt de publication (`IPublicationRepository`) |
 | admin, console, dashboard | Back-office |
@@ -362,7 +394,7 @@ clients et le test Bruno quotidien.
 
 Absents du code à ce stade : l'historique, les **crédits** et la **disponibilité**. Le back-office
 affiche les récaps publiés et déclenche les récaps de démo et de test ; la génération quotidienne
-s'y bascule mais reste sans effet tant que le job quotidien n'existe pas.
+s'y démarre, s'y arrête et s'y règle (heure de génération).
 
 ### Autres écarts
 
@@ -375,8 +407,6 @@ s'y bascule mais reste sans effet tant que le job quotidien n'existe pas.
 - **`.claude/CLAUDE.md` § Project Overview** — employait « récap de test » pour désigner le **récap
   de démo** (§ 2) ; corrigé. « Le récap du jour rechargé sans cache » y désigne le **récap publié**
   (§ 2).
-- **Heure de génération** — 17 h, conformément au cron `0 0 17 * * ?` du job. L'ancien serveur mentionnait
-  16 h comme cible ; c'est 17 h qui fait foi.
 - **Accentuation et nombre des catégories** — le glossaire retient « Économie » (accentué) et
   « Technologies & Science » comme libellés d'interface. À confirmer au premier rendu réel dans
   l'application.
